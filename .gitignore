@@ -43,3 +43,5 @@ next-env.d.ts
 
 # nudge test seed manifest (local test state, not source)
 scripts/.nudge-test-manifest.json
+
+.vercel
