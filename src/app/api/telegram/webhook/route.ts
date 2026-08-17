@@ -13,7 +13,7 @@ const TELEGRAM_API = `https://api.telegram.org/bot${BOT_TOKEN}`;
 const TELEGRAM_FILE_API = `https://api.telegram.org/file/bot${BOT_TOKEN}`;
 
 const NOT_A_VOICE_NOTE_REPLY = "Send a voice note and I'll remember it for you.";
-const TRANSCRIPTION_FAILED_REPLY = "Couldn't catch that one — mind trying again?";
+const TRANSCRIPTION_FAILED_REPLY = "Couldn't catch that one. Mind trying again?";
 
 const RETRY_BACKOFF_MS = 1000;
 

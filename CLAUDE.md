@@ -44,6 +44,9 @@ copy. The register is "remember what matters to the people you love."
     can't scope reads to a signed-in owner — it reads a single profile id from
     an env var instead. Anyone with the Instant app id can read all of it.
     Must be scoped to the authenticated owner before auth ships.
+11. **Never run `setWebhook` with the production bot token.** One bot has one
+    webhook; re-pointing it at a tunnel silently kills production capture with
+    no error anywhere.
 
 ## Environment variables
 
@@ -67,6 +70,19 @@ $CRON_SECRET`, so it can't be renamed. `/api/cron/nudges` accepts either that
 or `HOLDFAST_CRON_SECRET` via `x-holdfast-cron-secret` (kept for manual
 testing without deploying).
 
+## Environments
+
+Production runs on Vercel. The production bot's webhook points at the Vercel
+URL permanently and is never re-registered. If capture appears broken, check
+the Vercel deployment and logs — do not start a tunnel.
+
+Local development uses a SECOND Telegram bot with its own token, behind a
+cloudflared tunnel. That tunnel URL changes on restart, so `setWebhook` is
+re-run — for the dev bot only.
+
+`.env.local` holds the dev bot token. Vercel holds the production bot token.
+They are never interchanged.
+
 ## Out of scope — do not build unless I ask
 
 Auth, paywall, billing, settings screens, onboarding flows, audio playback,
@@ -82,5 +98,13 @@ analytics dashboards, notification preferences, timezone configuration.
 - Keep the extraction prompt in `lib/extraction-prompt.ts` as a versioned
   exported constant. Never inline it.
 - Log every extraction input and output to the console in development.
-- Local development runs behind a cloudflared tunnel, so the public webhook URL
-  changes on restart and `setWebhook` has to be re-run.
+- Production runs on Vercel. The Telegram webhook points at the production URL
+  permanently and is not re-registered. Local development uses a separate bot
+  with its own token.
+
+## Copy rules
+
+No em dashes (—) or en dashes (–) anywhere in user-facing text. This
+includes the landing page, Telegram bot replies, nudge messages, page
+metadata, and any future copy. Use a comma, a colon, a full stop, or
+restructure the sentence. Code and comments are exempt.

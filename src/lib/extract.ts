@@ -140,7 +140,7 @@ export function formatExtractionSummary(extraction: ExtractionResult): string {
   const factParts = extraction.facts.map((fact) =>
     fact.event_date ? `${fact.content} on ${formatDayOrdinal(fact.event_date)}` : fact.content,
   );
-  const headline = factParts.length > 0 ? `${name} — ${factParts.join(', ')}.` : `${name}.`;
+  const headline = factParts.length > 0 ? `${name}: ${factParts.join(', ')}.` : `${name}.`;
 
   if (extraction.commitments.length === 0) {
     return headline;

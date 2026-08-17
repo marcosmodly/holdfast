@@ -40,6 +40,11 @@ const _schema = i.schema({
       sentAt: i.date().indexed().optional(),
       actedOn: i.boolean(),
     }),
+    waitlist: i.entity({
+      email: i.string().indexed().unique(),
+      createdAt: i.number().indexed(),
+      source: i.string().optional(), // "tiktok" | "youtube" | "direct" — from ?ref=
+    }),
   },
   links: {
     profileUser: {
