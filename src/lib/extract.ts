@@ -1,4 +1,5 @@
-import { EXTRACTION_PROMPT_V1 } from '@/lib/extraction-prompt';
+import { EXTRACTION_PROMPT_V4, fillPromptTemplate } from '@/lib/extraction-prompt';
+import { resolveFinalDate } from '@/lib/resolve-date';
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const EXTRACTION_MODEL = 'gpt-4o-mini';
@@ -6,16 +7,27 @@ const EXTRACTION_MODEL = 'gpt-4o-mini';
 export type FactType = 'life_event' | 'state' | 'detail';
 export type Sentiment = 'worried' | 'happy' | 'neutral' | 'low';
 
+// V4 contract: the model never resolves a date itself (see
+// extraction-prompt.ts V4 and resolve-date.ts). `date_expression` is the
+// speaker's own words verbatim; `resolved_date` is set by the model only
+// when the transcript stated a full explicit date. Everything else is
+// resolved in code, in persist.ts.
 export interface ExtractedFact {
   type: FactType;
   content: string;
-  event_date: string | null;
+  date_expression: string | null;
+  resolved_date: string | null;
   confidence: number;
 }
 
 export interface ExtractedCommitment {
   description: string;
-  due_date: string;
+  date_expression: string | null;
+  resolved_date: string | null;
+  // The exact transcript substring the model points to as proof the speaker
+  // made this commitment; persist.ts verifies it and drops the commitment
+  // if it isn't actually there (and isn't actually a promise).
+  evidence: string;
 }
 
 export interface ExtractionResult {
@@ -26,7 +38,30 @@ export interface ExtractionResult {
   sentiment: Sentiment;
 }
 
-const EXTRACTION_SCHEMA = {
+// Legacy shapes, kept only so the prompt-version eval script can still run
+// V1/V2/V3 for comparison. `extract()` itself only ever uses V4 below.
+export interface LegacyExtractedFact {
+  type: FactType;
+  content: string;
+  event_date: string | null;
+  confidence: number;
+}
+
+export interface LegacyExtractedCommitment {
+  description: string;
+  due_date: string;
+  evidence?: string; // V3 only
+}
+
+export interface LegacyExtractionResult {
+  person_name: string | null;
+  met_on: string;
+  facts: LegacyExtractedFact[];
+  commitments: LegacyExtractedCommitment[];
+  sentiment: Sentiment;
+}
+
+export const EXTRACTION_SCHEMA = {
   name: 'holdfast_extraction',
   strict: true,
   schema: {
@@ -67,17 +102,91 @@ const EXTRACTION_SCHEMA = {
   },
 };
 
-// Runs structured extraction over a transcript. `captureDate` is an ISO 8601
-// date (YYYY-MM-DD) that every relative date in the prompt resolves against.
-export async function extract(
+export const EXTRACTION_SCHEMA_V3 = {
+  name: 'holdfast_extraction_v3',
+  strict: true,
+  schema: {
+    type: 'object',
+    properties: {
+      ...EXTRACTION_SCHEMA.schema.properties,
+      commitments: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            description: { type: 'string' },
+            due_date: { type: 'string' },
+            evidence: { type: 'string' },
+          },
+          required: ['description', 'due_date', 'evidence'],
+          additionalProperties: false,
+        },
+      },
+    },
+    required: ['person_name', 'met_on', 'facts', 'commitments', 'sentiment'],
+    additionalProperties: false,
+  },
+};
+
+export const EXTRACTION_SCHEMA_V4 = {
+  name: 'holdfast_extraction_v4',
+  strict: true,
+  schema: {
+    type: 'object',
+    properties: {
+      person_name: { type: ['string', 'null'] },
+      met_on: { type: 'string' },
+      facts: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            type: { type: 'string', enum: ['life_event', 'state', 'detail'] },
+            content: { type: 'string' },
+            date_expression: { type: ['string', 'null'] },
+            resolved_date: { type: ['string', 'null'] },
+            confidence: { type: 'number' },
+          },
+          required: ['type', 'content', 'date_expression', 'resolved_date', 'confidence'],
+          additionalProperties: false,
+        },
+      },
+      commitments: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            description: { type: 'string' },
+            date_expression: { type: ['string', 'null'] },
+            resolved_date: { type: ['string', 'null'] },
+            evidence: { type: 'string' },
+          },
+          required: ['description', 'date_expression', 'resolved_date', 'evidence'],
+          additionalProperties: false,
+        },
+      },
+      sentiment: { type: 'string', enum: ['worried', 'happy', 'neutral', 'low'] },
+    },
+    required: ['person_name', 'met_on', 'facts', 'commitments', 'sentiment'],
+    additionalProperties: false,
+  },
+};
+
+type JsonSchemaSpec = { name: string; strict: boolean; schema: Record<string, unknown> };
+
+// Calls the model with a fully-rendered system prompt and a response schema,
+// and normalizes the result. Shared by `extract()` (always V4 +
+// EXTRACTION_SCHEMA_V4) and the prompt-version eval script, which passes
+// other prompt/schema versions with their own result shapes via `T`.
+export async function runExtraction<T extends { met_on: string }>(
   transcript: string,
   captureDate: string,
-): Promise<ExtractionResult> {
+  systemPrompt: string,
+  schema: JsonSchemaSpec,
+): Promise<T> {
   if (!OPENAI_API_KEY) {
     throw new Error('Missing OPENAI_API_KEY environment variable');
   }
-
-  const systemPrompt = EXTRACTION_PROMPT_V1.replace('{{CAPTURE_DATE}}', captureDate);
 
   if (process.env.NODE_ENV === 'development') {
     console.log('Extraction input:', JSON.stringify({ captureDate, transcript }, null, 2));
@@ -91,11 +200,12 @@ export async function extract(
     },
     body: JSON.stringify({
       model: EXTRACTION_MODEL,
+      temperature: 0,
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: transcript },
       ],
-      response_format: { type: 'json_schema', json_schema: EXTRACTION_SCHEMA },
+      response_format: { type: 'json_schema', json_schema: schema },
     }),
   });
 
@@ -109,7 +219,7 @@ export async function extract(
     throw new Error('OpenAI extraction returned no content');
   }
 
-  const result = JSON.parse(content) as ExtractionResult;
+  const result = JSON.parse(content) as T;
   // The capture date is known to us exactly; don't trust the model to echo it back.
   result.met_on = captureDate;
 
@@ -118,6 +228,17 @@ export async function extract(
   }
 
   return result;
+}
+
+// Runs structured extraction over a transcript. `captureDate` is an ISO 8601
+// date (YYYY-MM-DD) that resolve-date.ts resolves every date expression
+// against.
+export async function extract(
+  transcript: string,
+  captureDate: string,
+): Promise<ExtractionResult> {
+  const systemPrompt = fillPromptTemplate(EXTRACTION_PROMPT_V4, captureDate);
+  return runExtraction<ExtractionResult>(transcript, captureDate, systemPrompt, EXTRACTION_SCHEMA_V4);
 }
 
 // Renders an ISO date's day-of-month as an ordinal, e.g. "2026-08-14" -> "the 14th".
@@ -137,9 +258,10 @@ function formatDayOrdinal(isoDate: string): string {
 // Builds the short, human, non-JSON summary sent back to the user in Telegram.
 export function formatExtractionSummary(extraction: ExtractionResult): string {
   const name = extraction.person_name ?? 'Someone';
-  const factParts = extraction.facts.map((fact) =>
-    fact.event_date ? `${fact.content} on ${formatDayOrdinal(fact.event_date)}` : fact.content,
-  );
+  const factParts = extraction.facts.map((fact) => {
+    const eventDate = resolveFinalDate(fact, extraction.met_on);
+    return eventDate ? `${fact.content} on ${formatDayOrdinal(eventDate)}` : fact.content;
+  });
   const headline = factParts.length > 0 ? `${name}: ${factParts.join(', ')}.` : `${name}.`;
 
   if (extraction.commitments.length === 0) {
@@ -147,5 +269,5 @@ export function formatExtractionSummary(extraction: ExtractionResult): string {
   }
 
   const commitmentParts = extraction.commitments.map((c) => c.description);
-  return `${headline}\nYou said you'd ${commitmentParts.join(' and ')}.`;
+  return `${headline}\n${name}: you said you'd ${commitmentParts.join(' and ')}.`;
 }

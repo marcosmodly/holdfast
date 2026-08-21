@@ -99,7 +99,7 @@ async function handleVoiceMessage(
 
   // The reply must describe what actually landed in the database, not what
   // the model extracted — those two can diverge (see persistExtraction).
-  const result = await persistExtraction(chatId, captureId, captureTime, extraction);
+  const result = await persistExtraction(chatId, captureId, captureTime, extraction, transcript);
   switch (result.status) {
     case 'saved':
       await sendTelegramMessage(chatId, formatExtractionSummary(extraction));

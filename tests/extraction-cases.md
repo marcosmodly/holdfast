@@ -43,6 +43,13 @@ Day-of-week lookup used below:
 mark it `>= 0.6` (the prompt's own "guessing" threshold) rather than pinning
 an exact value — treat any confidence at or above that as a pass.
 
+As of V4, a commitment's `description` never names the person — asking the
+model to do that reliably caused it to sometimes drop the person entirely
+(see case 4's history). The nudge and reply templates prepend the name
+instead ("Marco: you said you'd..."). `description` is just the bare action:
+no first-person framing ("I'd", "I said I'd", etc.), but a pronoun left over
+from the transcript ("send him...") is fine and expected, not a failure.
+
 ---
 
 ## 1. Bare weekday
@@ -147,7 +154,7 @@ an exact value — treat any confidence at or above that as a pass.
   "facts": [],
   "commitments": [
     {
-      "description": "send Sam the trainer's contact info",
+      "description": "send over the trainer's contact info",
       "due_date": "2026-08-28"
     }
   ],
@@ -177,7 +184,7 @@ No timeframe given for the commitment -> capture date + 3 days = **2026-08-24**.
   ],
   "commitments": [
     {
-      "description": "look into flight options for Lena's birthday trip",
+      "description": "look into flight options for her birthday trip",
       "due_date": "2026-08-24"
     }
   ],
@@ -214,7 +221,7 @@ default = **2026-08-24**.
   ],
   "commitments": [
     {
-      "description": "send Jordan the recruiter contact",
+      "description": "send him the recruiter contact",
       "due_date": "2026-08-24"
     }
   ],
@@ -343,3 +350,95 @@ anything else.
   "sentiment": "neutral"
 }
 ```
+
+---
+
+## 11. Stated but vague timeframe
+
+> Caught up with Priya. Her presentation went great and she wants to
+> celebrate properly. I told her I'd plan a dinner sometime after the
+> holidays.
+
+A timeframe IS stated ("sometime after the holidays"), it's just vague. Per
+V2/V3 rule 4/6, that means `due_date` must NOT fall back to the no-timeframe
+3-day default (2026-08-24) — that default is reserved strictly for
+commitments where no timeframe was mentioned at all. Nothing else in this set
+exercises a stated-but-unparseable timeframe; case 4 has a clean relative
+date ("next week") and case 5 has no timeframe at all. This is the case V2's
+rule 4 change was written for.
+
+```json
+{
+  "person_name": "Priya",
+  "facts": [
+    {
+      "type": "life_event",
+      "content": "her presentation went great",
+      "event_date": null,
+      "confidence": ">=0.6"
+    }
+  ],
+  "commitments": [
+    {
+      "description": "plan a dinner to celebrate",
+      "due_date": ">2026-08-24"
+    }
+  ],
+  "sentiment": "happy"
+}
+```
+
+**Pass condition:** `due_date` is a valid date strictly after 2026-08-24. A
+result of exactly 2026-08-24 is a fail even though it looks plausible in
+isolation, because it means the model silently applied the no-timeframe
+default to a commitment that DID have a stated timeframe. (V1 has no
+instruction to resolve vague-but-stated timeframes at all, so it is expected
+to fail this case by falling back to the 3-day default.)
+
+---
+
+## 12. Likely-hallucinated commitment — must be dropped, not just avoided
+
+> Grabbed a drink with Noah. He's overwhelmed moving into his new place next
+> month. We talked about maybe getting a group together to help him carry
+> boxes.
+
+No one commits to anything here. "We talked about maybe" is collaborative,
+speculative language, not a promise by the speaker ("I'll organize people to
+help him move" is a plausible but invented completion). This is the case
+rule 3 (V1/V2/V3) is supposed to prevent outright, by wording alone. It
+exists specifically to verify the code-level backstop: under V3, if the model
+extracts a commitment here anyway, its `evidence` field cannot be a real
+substring of the transcript (no words commit the speaker to anything), so
+`persist.ts`'s evidence check must drop it even though the prompt rule alone
+did not.
+
+```json
+{
+  "person_name": "Noah",
+  "facts": [
+    {
+      "type": "life_event",
+      "content": "is moving into a new place next month",
+      "event_date": null,
+      "confidence": ">=0.6"
+    },
+    {
+      "type": "state",
+      "content": "is overwhelmed about the move",
+      "event_date": null,
+      "confidence": ">=0.6"
+    }
+  ],
+  "commitments": [],
+  "sentiment": "worried"
+}
+```
+
+**Failure mode this guards against:** a commitment like "help Noah carry
+boxes" or "organize a group to help Noah move" appearing in the raw
+extraction. Under V3 that is graded PASS only if either (a) the model
+correctly withheld it, or (b) it appeared in the raw extraction but was
+removed by the persist-layer evidence check before reaching storage. Under
+V1/V2, which have no evidence field to fall back on, wording is the only
+defense and any such commitment surviving to raw output is a fail.

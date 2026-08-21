@@ -13,6 +13,7 @@ interface Candidate {
   priority: 1 | 2 | 3;
   ageDays: number;
   personId: string;
+  commitmentId?: string;
   message: string;
 }
 
@@ -44,7 +45,13 @@ interface PersonWithRelations {
   name: string;
   cadenceDays: number;
   lastContactAt?: string | number | null;
-  commitments: { description: string; status: string; dueDate?: string | number | null }[];
+  commitments: {
+    id: string;
+    description: string;
+    status: string;
+    dueDate?: string | number | null;
+    nudges: { actedOn: boolean }[];
+  }[];
   facts: { content: string; eventDate?: string | number | null }[];
 }
 
@@ -57,6 +64,10 @@ function buildCandidatesForPerson(
 
   for (const commitment of person.commitments) {
     if (commitment.status !== 'open' || commitment.dueDate == null) continue;
+    // Already nudged and not yet acted on: don't re-candidate it every day
+    // until the user (or a future "mark done" flow) resolves it, or it would
+    // nudge daily until the 3-per-week cap happened to absorb it.
+    if (commitment.nudges.some((n) => !n.actedOn)) continue;
     const dueDate = Number(commitment.dueDate);
     if (dueDate < today) {
       candidates.push({
@@ -64,7 +75,8 @@ function buildCandidatesForPerson(
         priority: 1,
         ageDays: daysBetween(today, dueDate),
         personId: person.id,
-        message: `You said you'd ${commitment.description}. Still worth doing?`,
+        commitmentId: commitment.id,
+        message: `${person.name}: you said you'd ${commitment.description}. Still worth doing?`,
       });
     }
   }
@@ -123,7 +135,7 @@ async function processProfile(
   const { people } = await db.query({
     people: {
       $: { where: { 'profile.id': profile.id } },
-      commitments: {},
+      commitments: { nudges: {} },
       facts: {},
     },
   });
@@ -158,7 +170,10 @@ async function processProfile(
           sentAt: now,
           actedOn: false,
         })
-        .link({ person: candidate.personId }),
+        .link({
+          person: candidate.personId,
+          ...(candidate.commitmentId ? { commitment: candidate.commitmentId } : {}),
+        }),
     );
 
     results.push({

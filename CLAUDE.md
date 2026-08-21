@@ -62,6 +62,12 @@ copy. The register is "remember what matters to the people you love."
     captured when it wasn't stored is the worst failure mode for this
     product.
 
+## Persistence
+
+Test and repro scripts must NEVER write to the production Instant app. A
+scratch script created a second profile with a fake `telegramChatId`, which
+silently broke nudge delivery until a send failed.
+
 ## Environment variables
 
 ```
@@ -126,6 +132,19 @@ else under `.claude/skills/` is vendored and gitignored.
 - Production runs on Vercel. The Telegram webhook points at the production URL
   permanently and is not re-registered. Local development uses a separate bot
   with its own token.
+
+## Where work belongs
+
+The model is reliable at reading what was said. It is unreliable at
+everything downstream of that. Every extraction failure in this project
+was fixed by moving work OUT of the prompt and INTO code:
+
+  weekday arithmetic  -> resolveDateExpression()
+  commitment truth    -> commitmentEvidenceHolds()
+  naming the person   -> the nudge template
+
+When the model gets something wrong twice, do not rewrite the rule.
+Ask what deterministic code could do that job instead.
 
 ## Copy rules
 

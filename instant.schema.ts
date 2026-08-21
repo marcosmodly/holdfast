@@ -90,6 +90,10 @@ const _schema = i.schema({
       forward: { on: 'nudges', has: 'one', label: 'person' },
       reverse: { on: 'people', has: 'many', label: 'nudges' },
     },
+    nudgeCommitment: {
+      forward: { on: 'nudges', has: 'one', label: 'commitment' },
+      reverse: { on: 'commitments', has: 'many', label: 'nudges' },
+    },
     personProfile: {
       forward: { on: 'people', has: 'one', label: 'profile' },
       reverse: { on: 'profiles', has: 'many', label: 'people' },

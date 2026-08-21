@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "eslint",
     "seed:nudges": "tsx --env-file=.env.local scripts/seed-nudge-test.ts",
-    "cleanup:nudges": "tsx --env-file=.env.local scripts/cleanup-nudge-test.ts"
+    "cleanup:nudges": "tsx --env-file=.env.local scripts/cleanup-nudge-test.ts",
+    "eval:extraction": "tsx --env-file=.env.local scripts/eval-extraction.ts",
+    "test": "node --import tsx --test tests/resolve-date.test.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
