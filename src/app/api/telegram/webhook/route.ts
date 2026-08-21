@@ -14,6 +14,8 @@ const TELEGRAM_FILE_API = `https://api.telegram.org/file/bot${BOT_TOKEN}`;
 
 const NOT_A_VOICE_NOTE_REPLY = "Send a voice note and I'll remember it for you.";
 const TRANSCRIPTION_FAILED_REPLY = "Couldn't catch that one. Mind trying again?";
+const NO_PERSON_REPLY = "Got that, but I couldn't tell who it was about. Mind sending it again with their name?";
+const PERSIST_FAILED_REPLY = "Got that, but something went wrong saving it. Mind sending it again in a bit?";
 
 const RETRY_BACKOFF_MS = 1000;
 
@@ -84,22 +86,40 @@ async function handleVoiceMessage(
   // Non-negotiable: delete audio only after the transcript is persisted.
   await db.storage.delete(storagePath);
 
+  let extraction: Awaited<ReturnType<typeof extract>>;
   try {
     const captureDate = new Date(captureTime).toISOString().slice(0, 10);
-    const extraction = await extract(transcript, captureDate);
-    await persistExtraction(chatId, captureId, captureTime, extraction);
-    await sendTelegramMessage(chatId, formatExtractionSummary(extraction));
-
-    // TODO: remove this debug block before production — dumps the raw
-    // transcript and extraction JSON to Telegram for prompt tuning.
-    if (process.env.NODE_ENV === 'development') {
-      await sendTelegramMessage(chatId, `TRANSCRIPT:\n${transcript}`);
-      await sendTelegramMessage(chatId, `\`\`\`\n${JSON.stringify(extraction, null, 2)}\n\`\`\``);
-    }
+    extraction = await extract(transcript, captureDate);
   } catch (error) {
     // Extraction is best-effort for now — the user still gets their transcript.
-    console.error('Extraction failed:', error);
+    console.error('Extraction failed for capture', captureId, error);
     await sendTelegramMessage(chatId, transcript);
+    return;
+  }
+
+  // The reply must describe what actually landed in the database, not what
+  // the model extracted — those two can diverge (see persistExtraction).
+  const result = await persistExtraction(chatId, captureId, captureTime, extraction);
+  switch (result.status) {
+    case 'saved':
+      await sendTelegramMessage(chatId, formatExtractionSummary(extraction));
+      break;
+    case 'no_person':
+      await sendTelegramMessage(chatId, NO_PERSON_REPLY);
+      break;
+    case 'failed':
+      await sendTelegramMessage(chatId, PERSIST_FAILED_REPLY);
+      break;
+  }
+
+  // TODO: remove this debug block before production — dumps the raw
+  // transcript and extraction JSON to Telegram for prompt tuning.
+  if (process.env.NODE_ENV === 'development') {
+    await sendTelegramMessage(chatId, `TRANSCRIPT:\n${transcript}`);
+    await sendTelegramMessage(
+      chatId,
+      `\`\`\`\n${JSON.stringify({ extraction, persist: result }, null, 2)}\n\`\`\``,
+    );
   }
 }
 

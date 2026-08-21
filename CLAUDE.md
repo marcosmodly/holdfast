@@ -47,6 +47,20 @@ copy. The register is "remember what matters to the people you love."
 11. **Never run `setWebhook` with the production bot token.** One bot has one
     webhook; re-pointing it at a tunnel silently kills production capture with
     no error anywhere.
+12. **Profile, person, facts, and commitments persist in ONE atomic Instant
+    transaction.** Any rejected step discards all of them. Never gate the
+    creation of one entity on another entity's existence (e.g. deciding
+    whether to create the profile based on whether the person is new) — check
+    each entity's existence independently, or a returning user mentioning a
+    new person will re-`create()` their already-existing profile and the
+    whole transaction gets rejected.
+13. **A function named `findOrCreate` must actually create.** `findOrCreateProfileId`
+    used to only find. If it doesn't create, name it `find`.
+14. **The bot's Telegram reply must reflect what was SAVED, never what was
+    extracted.** Build the reply from the persistence result, not the raw
+    extraction — they can disagree, and telling the user something was
+    captured when it wasn't stored is the worst failure mode for this
+    product.
 
 ## Environment variables
 
@@ -88,6 +102,17 @@ They are never interchanged.
 Auth, paywall, billing, settings screens, onboarding flows, audio playback,
 team features, calendar or contacts integration, mobile native apps, dark mode,
 analytics dashboards, notification preferences, timezone configuration.
+
+## Tooling
+
+UI skills are not tracked. Reinstall with:
+
+```
+npm install -g ui-ux-pro-max-cli && uipro init --ai claude
+```
+
+`.claude/skills/instantdb/` is the exception and stays tracked; everything
+else under `.claude/skills/` is vendored and gitignored.
 
 ## Working style
 

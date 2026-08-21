@@ -7,14 +7,19 @@ const NEW_PERSON_CADENCE_DAYS = 45;
 const NEW_PROFILE_PLAN = 'trial';
 const NEW_COMMITMENT_STATUS = 'open';
 
-async function findOrCreateProfileId(telegramChatId: string): Promise<string> {
+interface ProfileLookup {
+  id: string;
+  isNew: boolean;
+}
+
+async function findOrCreateProfileId(telegramChatId: string): Promise<ProfileLookup> {
   const { profiles } = await db.query({
     profiles: { $: { where: { telegramChatId } } },
   });
   if (profiles.length > 0) {
-    return profiles[0].id;
+    return { id: profiles[0].id, isNew: false };
   }
-  return id();
+  return { id: id(), isNew: true };
 }
 
 async function findExistingPersonId(
@@ -29,41 +34,62 @@ async function findExistingPersonId(
   return people.length > 0 ? people[0].id : null;
 }
 
+// What actually happened to an extraction on the way to the database. The
+// Telegram reply must be built from this, never from the raw extraction,
+// because "saved" is the only status where the extraction and the database
+// agree.
+export type PersistResult =
+  | { status: 'no_person' }
+  | { status: 'saved'; personName: string }
+  | { status: 'failed'; error: unknown };
+
 // Persists an extraction result: finds-or-creates the profile and person,
 // then writes facts, commitments, and the capture/person link atomically.
-// No-ops (beyond profile lookup) if the extraction didn't name a person.
+// Never throws: a failed transaction is caught, logged in full with the
+// capture id, and reported back as `{ status: 'failed' }` instead.
 export async function persistExtraction(
   telegramChatId: number,
   captureId: string,
   captureTime: number,
   extraction: ExtractionResult,
-): Promise<void> {
+): Promise<PersistResult> {
   const trimmedName = extraction.person_name?.trim();
   if (!trimmedName) {
     console.error('Extraction had no person_name; skipping persistence for capture', captureId);
-    return;
+    return { status: 'no_person' };
   }
 
   const chatIdStr = String(telegramChatId);
-  const profileId = await findOrCreateProfileId(chatIdStr);
-  const existingPersonId = await findExistingPersonId(profileId, trimmedName);
+  const profile = await findOrCreateProfileId(chatIdStr);
+  const existingPersonId = await findExistingPersonId(profile.id, trimmedName);
   const personId = existingPersonId ?? id();
+  const isNewPerson = existingPersonId === null;
 
   const chunks = [];
 
-  if (existingPersonId === null) {
+  // Profile and person are independent existence checks. Conflating them
+  // (e.g. gating both creates on `isNewPerson`) re-`create()`s an
+  // already-existing profile whenever a returning user mentions someone
+  // new, which InstantDB rejects as a whole-transaction validation error
+  // ("Creating entities that exist") because `telegramChatId` is unique.
+  if (profile.isNew) {
     chunks.push(
-      db.tx.profiles[profileId].create({
+      db.tx.profiles[profile.id].create({
         telegramChatId: chatIdStr,
         plan: NEW_PROFILE_PLAN,
       }),
+    );
+  }
+
+  if (isNewPerson) {
+    chunks.push(
       db.tx.people[personId]
         .create({
           name: trimmedName,
           tier: NEW_PERSON_TIER,
           cadenceDays: NEW_PERSON_CADENCE_DAYS,
         })
-        .link({ profile: profileId }),
+        .link({ profile: profile.id }),
     );
   }
 
@@ -97,5 +123,12 @@ export async function persistExtraction(
     );
   }
 
-  await db.transact(chunks);
+  try {
+    await db.transact(chunks);
+  } catch (error) {
+    console.error('Persistence failed for capture', captureId, error);
+    return { status: 'failed', error };
+  }
+
+  return { status: 'saved', personName: trimmedName };
 }

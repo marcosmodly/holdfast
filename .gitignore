@@ -45,3 +45,7 @@ next-env.d.ts
 scripts/.nudge-test-manifest.json
 
 .vercel
+
+# vendored third-party skills, reinstallable, not project source
+.claude/skills/*
+!.claude/skills/instantdb/
