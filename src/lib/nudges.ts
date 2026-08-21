@@ -63,9 +63,12 @@ function buildCandidatesForPerson(
   const candidates: Candidate[] = [];
 
   for (const commitment of person.commitments) {
+    // Only 'open' commitments are candidates — a reply of "done" or "no"
+    // (nudge-reply.ts) sets status to 'done' or 'dropped', and both are
+    // excluded here same as any other non-'open' status.
     if (commitment.status !== 'open' || commitment.dueDate == null) continue;
     // Already nudged and not yet acted on: don't re-candidate it every day
-    // until the user (or a future "mark done" flow) resolves it, or it would
+    // until the reply (or a "not yet" snooze) resolves it, or it would
     // nudge daily until the 3-per-week cap happened to absorb it.
     if (commitment.nudges.some((n) => !n.actedOn)) continue;
     const dueDate = Number(commitment.dueDate);

@@ -4,6 +4,7 @@ import { db } from '@/lib/instant-admin';
 import { transcribe } from '@/lib/transcribe';
 import { extract, formatExtractionSummary } from '@/lib/extract';
 import { persistExtraction } from '@/lib/persist';
+import { handleNudgeReply } from '@/lib/nudge-reply';
 import { sendTelegramMessage } from '@/lib/telegram';
 
 const BOT_TOKEN = process.env.HOLDFAST_TELEGRAM_BOT_TOKEN;
@@ -37,6 +38,7 @@ interface TelegramMessage {
   message_id: number;
   chat: { id: number };
   voice?: { file_id: string };
+  text?: string;
 }
 
 interface TelegramUpdate {
@@ -142,6 +144,8 @@ export async function POST(request: NextRequest) {
     if (message && chatId !== undefined) {
       if (message.voice) {
         await handleVoiceMessage(chatId, message.message_id, message.voice.file_id);
+      } else if (message.text) {
+        await sendTelegramMessage(chatId, await handleNudgeReply(chatId, message.text));
       } else {
         await sendTelegramMessage(chatId, NOT_A_VOICE_NOTE_REPLY);
       }
