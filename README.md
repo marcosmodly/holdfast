@@ -1,36 +1,26 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Holdfast
 
-## Getting Started
+Voice-first memory for the people you care about.
 
-First, run the development server:
+After you see someone, you talk for about 20 seconds into a Telegram bot. Holdfast transcribes it, pulls out who you saw, what's going on in their life, and anything you promised to do, then reminds you at the moment it actually matters. It's not a CRM, it's just a way to not let things slip through the cracks with people you love.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+**Live:** https://holdfast-lake-ten.vercel.app
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## How it works
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. Send a voice note to the Telegram bot after seeing someone
+2. It's transcribed and the audio is deleted right after, only the text sticks around
+3. The extraction pulls out the person, what's happening with them, and any commitments you made
+4. You get reminded at the right time, capped so it never turns into noise
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Stack
 
-## Learn More
+- Next.js (App Router) + TypeScript
+- InstantDB for data
+- Telegram Bot API for capture and delivery
+- OpenAI `gpt-4o-mini-transcribe` for speech-to-text
+- Vercel for hosting + cron
 
-To learn more about Next.js, take a look at the following resources:
+## Status
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+In active development.
