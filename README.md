@@ -1,10 +1,12 @@
 # Holdfast
 
-Voice-first memory for the people you care about.
+Never lose touch with the people who matter.
 
-After you see someone, you talk for about 20 seconds into a Telegram bot. Holdfast transcribes it, pulls out who you saw, what's going on in their life, and anything you promised to do, then reminds you at the moment it actually matters. It's not a CRM, it's just a way to not let things slip through the cracks with people you love.
+12% of Americans said they had no close friends in 2021, up from just 3% in 1990. Friendships rarely end on purpose, they just go quiet. Holdfast is built against that drift: after you see someone, you talk for about 20 seconds into a Telegram bot. It transcribes what you said, pulls out who you saw, what's going on in their life, and anything you promised to do, then reminds you at the moment it actually matters, before the surgery you meant to ask about, before the referral you promised turns stale.
 
-**Live:** https://holdfast-lake-ten.vercel.app
+It's deliberately not a CRM and doesn't scrape your contacts or social graph. You decide who's worth remembering, one voice note at a time.
+
+**Live:** https://useholdfast.co
 
 ## How it works
 
@@ -23,4 +25,4 @@ After you see someone, you talk for about 20 seconds into a Telegram bot. Holdfa
 
 ## Status
 
-In active development.
+Live, early-stage.
