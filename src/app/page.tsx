@@ -3,6 +3,10 @@ import { fraunces, inter } from './fonts';
 import styles from './waitlist.module.css';
 import { WaitlistForm } from '@/components/waitlist-form';
 import { ScrollReveal } from '@/components/scroll-reveal';
+import { AudioLines, FileText, MessageCircle, Play, ShieldCheck, Trash2 } from 'lucide-react';
+
+// Bar heights (px) for the decorative voice-note waveform in the hero demo.
+const WAVE = [6, 10, 16, 12, 20, 14, 8, 18, 22, 12, 16, 9, 14, 19, 11, 7, 13, 17, 10, 6];
 
 const TITLE = 'Holdfast: Never lose touch with the people who matter';
 const DESCRIPTION =
@@ -49,20 +53,72 @@ export default async function Home({ searchParams }: HomeProps) {
 
       <main>
         <section className={styles.hero}>
-          <div className={styles.wrap}>
-            <h1 className={styles.heroH1}>Never lose touch with the people who matter.</h1>
-            <p className={styles.lede}>
-              Talk for twenty seconds after you see a friend. Holdfast remembers what&apos;s
-              going on in their life and what you promised. Then it reminds you{' '}
-              <strong>at the moment it actually matters.</strong>
-            </p>
-            <p className={styles.pronounce}>
-              <em>holdfast</em> <span>·</span> the root that anchors seaweed to rock, so the
-              current <strong>can&apos;t take it</strong>
-            </p>
+          <div className={`${styles.wrap} ${styles.heroGrid}`}>
+            <div className={styles.heroCopy}>
+              <p className={styles.eyebrow}>
+                <AudioLines size={16} aria-hidden="true" />
+                Voice notes in Telegram. No new app.
+              </p>
+              <h1 className={styles.heroH1}>Never lose touch with the people who matter.</h1>
+              <p className={styles.lede}>
+                Talk for twenty seconds after you see a friend. Holdfast remembers what&apos;s
+                going on in their life and what you promised. Then it reminds you{' '}
+                <strong>at the moment it actually matters.</strong>
+              </p>
+              <p className={styles.pronounce}>
+                <em>holdfast</em> <span>·</span> the root that anchors seaweed to rock, so the
+                current <strong>can&apos;t take it</strong>
+              </p>
 
-            <WaitlistForm source={source} visibleLabel />
-            <p className={styles.microcopy}>Early access, no spam, unsubscribe anytime.</p>
+              <WaitlistForm source={source} visibleLabel />
+              <p className={styles.microcopy}>Early access, no spam, unsubscribe anytime.</p>
+            </div>
+
+            {/* Replies mirror the bot's real wording: formatExtractionSummary()
+                in lib/extract.ts and the commitment nudge in lib/nudges.ts. */}
+            <figure className={styles.demo}>
+              <figcaption className={styles.srOnly}>
+                Example conversation with the Holdfast bot in Telegram
+              </figcaption>
+              <div className={styles.demoHead} aria-hidden="true">
+                <span className={styles.demoAvatar}>
+                  <svg width="18" height="18" viewBox="0 0 28 28" fill="none">
+                    <g stroke="currentColor" strokeWidth="2.6" strokeLinecap="round">
+                      <path d="M6.5 13v0.2M10 11v4.4M13.5 8.6v9.2M17 10.4v5.6M20.5 12.4v1.6" />
+                    </g>
+                  </svg>
+                </span>
+                <span className={styles.demoName}>
+                  Holdfast <span>bot</span>
+                </span>
+              </div>
+              <ol className={styles.thread}>
+                <li className={`${styles.bubble} ${styles.bubbleMe}`}>
+                  <span className={styles.srOnly}>You send a voice note, 18 seconds long.</span>
+                  <span className={styles.voice} aria-hidden="true">
+                    <span className={styles.play}>
+                      <Play size={13} fill="currentColor" strokeWidth={0} />
+                    </span>
+                    <span className={styles.wave}>
+                      {WAVE.map((h, i) => (
+                        <i key={i} style={{ height: `${h}px` }} />
+                      ))}
+                    </span>
+                    <span className={styles.voiceTime}>0:18</span>
+                  </span>
+                </li>
+                <li className={`${styles.bubble} ${styles.bubbleBot}`}>
+                  <p>Marco: mom&apos;s surgery on the 14th, stressed about the job hunt.</p>
+                  <p>Marco: you said you&apos;d introduce him to a recruiter.</p>
+                </li>
+                <li className={styles.threadDivider}>
+                  <span>3 days later</span>
+                </li>
+                <li className={`${styles.bubble} ${styles.bubbleBot}`}>
+                  <p>Marco: you said you&apos;d introduce him to a recruiter. Still worth doing?</p>
+                </li>
+              </ol>
+            </figure>
           </div>
         </section>
 
@@ -168,6 +224,9 @@ export default async function Home({ searchParams }: HomeProps) {
             </p>
             <ul className={styles.privacyList}>
               <li className={styles.reveal} data-reveal>
+                <span className={styles.privacyIcon} aria-hidden="true">
+                  <FileText size={20} />
+                </span>
                 <h3>It gets turned into text.</h3>
                 <p>
                   We send your recording to OpenAI to transcribe it. OpenAI then reads the text
@@ -175,6 +234,9 @@ export default async function Home({ searchParams }: HomeProps) {
                 </p>
               </li>
               <li className={styles.reveal} data-reveal>
+                <span className={styles.privacyIcon} aria-hidden="true">
+                  <Trash2 size={20} />
+                </span>
                 <h3>The recording gets deleted.</h3>
                 <p>
                   As soon as the text is saved, we delete the audio from our storage. We keep
@@ -182,6 +244,9 @@ export default async function Home({ searchParams }: HomeProps) {
                 </p>
               </li>
               <li className={styles.reveal} data-reveal>
+                <span className={styles.privacyIcon} aria-hidden="true">
+                  <MessageCircle size={20} />
+                </span>
                 <h3>Your copy stays with you.</h3>
                 <p>
                   The original voice note stays in your Telegram chat. Delete it there whenever
@@ -189,6 +254,9 @@ export default async function Home({ searchParams }: HomeProps) {
                 </p>
               </li>
               <li className={styles.reveal} data-reveal>
+                <span className={styles.privacyIcon} aria-hidden="true">
+                  <ShieldCheck size={20} />
+                </span>
                 <h3>It isn&apos;t used for training.</h3>
                 <p>
                   OpenAI says it doesn&apos;t train its models on data sent through its API by
@@ -207,8 +275,8 @@ export default async function Home({ searchParams }: HomeProps) {
           </div>
         </section>
 
-        <section className={styles.cta}>
-          <div className={styles.wrap}>
+        <section className={styles.cta} id="join">
+          <div className={`${styles.wrap} ${styles.ctaPanel}`}>
             <h2>Say it out loud once. Holdfast remembers the rest.</h2>
             <p className={styles.ctaLede}>
               Holdfast is in early development. Join the waitlist and you&apos;ll be among the
