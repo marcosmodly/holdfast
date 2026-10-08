@@ -48,6 +48,9 @@ const _schema = i.schema({
       email: i.string().indexed().unique(),
       createdAt: i.number().indexed(),
       source: i.string().optional(), // "tiktok" | "youtube" | "direct" — from ?ref=
+      // Set when this person is sent an invite link (phase 2 invite batches),
+      // so nobody is invited twice. Null until then.
+      invitedAt: i.date().indexed().optional(),
     }),
   },
   links: {

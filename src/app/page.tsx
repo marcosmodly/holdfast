@@ -293,7 +293,7 @@ export default async function Home({ searchParams }: HomeProps) {
             <strong>Holdfast:</strong> remember what matters to the people you love.
           </p>
           <p>
-            &copy; 2026 Holdfast. <a href="mailto:heyholdfast@gmail.com">heyholdfast@gmail.com</a>
+            &copy; 2026 Holdfast. <a href="mailto:hello@useholdfast.co">hello@useholdfast.co</a>
           </p>
         </div>
       </footer>

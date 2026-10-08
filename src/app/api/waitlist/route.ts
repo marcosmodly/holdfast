@@ -1,6 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse, after } from 'next/server';
 import { id } from '@instantdb/admin';
 import { db } from '@/lib/instant-admin';
+import { sendEmail } from '@/lib/email';
+import { welcomeEmail } from '@/lib/waitlist-emails';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAX_EMAIL_LENGTH = 254;
@@ -50,6 +52,17 @@ export async function POST(request: NextRequest) {
           ...(source ? { source } : {}),
         }),
       );
+
+      // Only a new row gets the welcome email, so a repeat signup never sends
+      // a second one. after() runs it once the response is out, and a failed
+      // send never fails the signup.
+      after(async () => {
+        try {
+          await sendEmail(welcomeEmail(email));
+        } catch (error) {
+          console.error('Waitlist welcome email failed:', error);
+        }
+      });
     }
 
     return NextResponse.json(OK_RESPONSE);
