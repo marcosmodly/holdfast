@@ -120,6 +120,23 @@ export default async function Home({ searchParams }: HomeProps) {
               </ol>
             </figure>
           </div>
+
+          {/* Click to play: browsers block autoplay with sound. Source lives in
+              ../holdfast-video (Remotion); see its README to rebuild. */}
+          <div className={`${styles.wrap} ${styles.heroVideo}`}>
+            <video
+              className={styles.video}
+              controls
+              playsInline
+              preload="none"
+              poster="/video/holdfast-explainer-poster.jpg"
+              aria-label="How Holdfast works, a 72 second video with narration"
+            >
+              <source src="/video/holdfast-explainer.mp4" type="video/mp4" />
+              <track kind="captions" src="/video/holdfast-explainer.vtt" srcLang="en" label="English" />
+            </video>
+            <p className={styles.videoCaption}>Watch how it works. 72 seconds, sound on, captions available.</p>
+          </div>
         </section>
 
         <section className={styles.stats}>
