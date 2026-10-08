@@ -8,9 +8,9 @@ import { AudioLines, FileText, MessageCircle, Play, ShieldCheck, Trash2 } from '
 // Bar heights (px) for the decorative voice-note waveform in the hero demo.
 const WAVE = [6, 10, 16, 12, 20, 14, 8, 18, 22, 12, 16, 9, 14, 19, 11, 7, 13, 17, 10, 6];
 
-const TITLE = 'Holdfast: Never lose touch with the people who matter';
+const TITLE = 'Remember things about friends in 20 seconds | Holdfast';
 const DESCRIPTION =
-  "Talk for twenty seconds after seeing a friend. Holdfast remembers what matters and reminds you at the moment it counts.";
+  "Talk for 20 seconds after you see a friend. Holdfast remembers what's going on in their life and what you promised, then reminds you when it matters.";
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -192,6 +192,28 @@ export default async function Home({ searchParams }: HomeProps) {
           </div>
         </section>
 
+        <section className={styles.adhd}>
+          <div className={styles.wrap}>
+            <h2 className={styles.reveal} data-reveal>
+              Forgetting isn&apos;t the same as not caring.
+            </h2>
+            <p className={styles.reveal} data-reveal>
+              If you have ADHD, this might sound familiar. Out of sight, out of mind, even with
+              people you love. It says nothing about how much they matter to you.
+            </p>
+            <p className={styles.reveal} data-reveal>
+              Most friend apps ask you to remember to open them, find the person, and type it all
+              up. That&apos;s one more thing to forget.
+            </p>
+            <p className={styles.reveal} data-reveal>
+              <strong>
+                Holdfast asks for twenty seconds in a chat you already use. After that, the
+                remembering is its job, not yours.
+              </strong>
+            </p>
+          </div>
+        </section>
+
         <section className={styles.why}>
           <div className={styles.wrap}>
             <h2 className={styles.reveal} data-reveal>
@@ -214,7 +236,7 @@ export default async function Home({ searchParams }: HomeProps) {
           </div>
         </section>
 
-        <section className={styles.privacy}>
+        <section className={styles.privacy} id="privacy">
           <div className={styles.wrap}>
             <h2 className={styles.reveal} data-reveal>
               Where your voice note goes.
@@ -269,6 +291,63 @@ export default async function Home({ searchParams }: HomeProps) {
                     Read OpenAI&apos;s data policy
                   </a>
                   .
+                </p>
+              </li>
+            </ul>
+          </div>
+        </section>
+
+        {/* Answers must match what the product does today: the drift nudge
+            and the 3-per-week cap live in lib/nudges.ts. */}
+        <section className={styles.faq}>
+          <div className={styles.wrap}>
+            <h2 className={styles.reveal} data-reveal>
+              Questions people ask.
+            </h2>
+            <ul className={styles.faqList}>
+              <li className={styles.reveal} data-reveal>
+                <h3>Do I need to download a new app?</h3>
+                <p>
+                  Not if you use Telegram. Holdfast lives there as a chat: hold the record button,
+                  talk, and let go. If you don&apos;t have Telegram yet, it&apos;s free on iPhone,
+                  Android, and desktop.
+                </p>
+              </li>
+              <li className={styles.reveal} data-reveal>
+                <h3>Is Holdfast a personal CRM?</h3>
+                <p>
+                  No. It doesn&apos;t import your address book or ask you to fill in records. It
+                  only knows the people you talk about, and only what you chose to say.
+                </p>
+              </li>
+              <li className={styles.reveal} data-reveal>
+                <h3>How is it different from a friend notes app?</h3>
+                <p>
+                  You talk instead of typing. It keeps track of what you said you&apos;d do, not
+                  just what they told you. And it reminds you around what&apos;s happening in
+                  their life, like the day after a big appointment.
+                </p>
+              </li>
+              <li className={styles.reveal} data-reveal>
+                <h3>What if I forget to send a voice note?</h3>
+                <p>
+                  Nothing is lost. Holdfast keeps everything you&apos;ve already told it. If weeks
+                  go by without a note about someone, it may let you know you two haven&apos;t
+                  spoken in a while.
+                </p>
+              </li>
+              <li className={styles.reveal} data-reveal>
+                <h3>How many reminders will I get?</h3>
+                <p>
+                  Three a week, at most. When more is due, the most important ones go first, like
+                  a promise you made.
+                </p>
+              </li>
+              <li className={styles.reveal} data-reveal>
+                <h3>Do you keep my recordings?</h3>
+                <p>
+                  No. We delete the audio as soon as the text is saved. Your own copy stays in
+                  your Telegram chat. <a href="#privacy">See where your voice note goes</a>.
                 </p>
               </li>
             </ul>
