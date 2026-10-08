@@ -98,14 +98,17 @@ export default async function Home({ searchParams }: HomeProps) {
             <h2 className={styles.reveal} data-reveal>
               Twenty seconds of talking. That&apos;s the whole habit.
             </h2>
+            <p className={`${styles.howLede} ${styles.reveal}`} data-reveal>
+              No typing, no forms, no fields to fill in. You talk, Holdfast does the sorting.
+            </p>
             <ol className={styles.steps}>
               <li className={styles.reveal} data-reveal>
                 <div>
                   <h3>Say what happened</h3>
                   <p>
                     &quot;Coffee with Marco. His mom&apos;s surgery is on the 14th. He&apos;s
-                    stressed about the job hunt. I said I&apos;d send him a recruiter
-                    contact.&quot; Hold the button, talk, done.
+                    stressed about the job hunt. I said I&apos;d introduce him to a
+                    recruiter.&quot; Hold the button, talk, done.
                   </p>
                 </div>
               </li>
@@ -123,8 +126,9 @@ export default async function Home({ searchParams }: HomeProps) {
                   <h3>It finds you at the right moment</h3>
                   <p>
                     On the 15th: <em>Marco&apos;s mom had surgery yesterday. Ask how it
-                    went.</em> Three days later: <em>You still haven&apos;t sent that
-                    contact.</em> Never more than a few nudges a week.
+                    went.</em> Three days later: <em>You still haven&apos;t introduced Marco
+                    to that recruiter.</em> At most three nudges a week. Enough to help, never enough
+                    to nag.
                   </p>
                 </div>
               </li>
@@ -154,9 +158,58 @@ export default async function Home({ searchParams }: HomeProps) {
           </div>
         </section>
 
+        <section className={styles.privacy}>
+          <div className={styles.wrap}>
+            <h2 className={styles.reveal} data-reveal>
+              Where your voice note goes.
+            </h2>
+            <p className={`${styles.privacyLede} ${styles.reveal}`} data-reveal>
+              Here is what happens today, in plain words.
+            </p>
+            <ul className={styles.privacyList}>
+              <li className={styles.reveal} data-reveal>
+                <h3>It gets turned into text.</h3>
+                <p>
+                  We send your recording to OpenAI to transcribe it. OpenAI then reads the text
+                  to pick out the people, dates and promises.
+                </p>
+              </li>
+              <li className={styles.reveal} data-reveal>
+                <h3>The recording gets deleted.</h3>
+                <p>
+                  As soon as the text is saved, we delete the audio from our storage. We keep
+                  words, never recordings.
+                </p>
+              </li>
+              <li className={styles.reveal} data-reveal>
+                <h3>Your copy stays with you.</h3>
+                <p>
+                  The original voice note stays in your Telegram chat. Delete it there whenever
+                  you like.
+                </p>
+              </li>
+              <li className={styles.reveal} data-reveal>
+                <h3>It isn&apos;t used for training.</h3>
+                <p>
+                  OpenAI says it doesn&apos;t train its models on data sent through its API by
+                  default. It may keep the text for up to 30 days for abuse checks.{' '}
+                  <a
+                    href="https://developers.openai.com/api/docs/guides/your-data"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Read OpenAI&apos;s data policy
+                  </a>
+                  .
+                </p>
+              </li>
+            </ul>
+          </div>
+        </section>
+
         <section className={styles.cta}>
           <div className={styles.wrap}>
-            <h2>Be a better friend without trying to remember everything.</h2>
+            <h2>Say it out loud once. Holdfast remembers the rest.</h2>
             <p className={styles.ctaLede}>
               Holdfast is in early development. Join the waitlist and you&apos;ll be among the
               first in.
