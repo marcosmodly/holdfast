@@ -37,14 +37,14 @@ const rules = {
       view: 'false',
     },
   },
+  // Capture audio is uploaded, read and deleted only by the webhook via the
+  // admin SDK, which skips these checks. Any client rule here would let an
+  // anonymous caller with the public app id read, upload or delete audio.
   $files: {
-    bind: {
-      isCaptureAudio: "data.path.startsWith('captures/')",
-    },
     allow: {
-      view: 'isCaptureAudio',
-      create: 'isCaptureAudio',
-      delete: 'isCaptureAudio',
+      view: 'false',
+      create: 'false',
+      delete: 'false',
       update: 'false',
     },
   },

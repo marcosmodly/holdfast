@@ -28,22 +28,26 @@ copy. The register is "remember what matters to the people you love."
 3. **Commitments are only things the USER said THEY would do.** Not things the
    other person will do. This distinction is the core of the product.
 4. **The admin token is a master key.** Server-side only, never in client code.
-5. **Instant storage permissions are disabled by default.** Any storage work
-   must include rules in `instant.perms.ts` or uploads silently fail.
+5. **Instant storage permissions are disabled by default.** Client-side
+   storage work must include rules in `instant.perms.ts` or uploads silently
+   fail. The admin SDK ignores these rules, so server-side storage needs none.
 6. **Instant has no upsert.** Always query before create, or you get duplicates.
 7. **Always return 200 to Telegram**, even on internal failure. Log the error
    separately. A non-200 makes Telegram retry the same update forever.
-8. **Storage perms are currently unscoped** — `$files` allows any caller on the
-   `captures/` prefix. Safe only while there is no client-side storage access
-   and no auth. Must be scoped to the authenticated owner before auth ships.
+8. **`$files` is deny-all for clients.** Capture audio is uploaded, read and
+   deleted only by the webhook through the admin SDK, which skips permission
+   checks. Never open a client rule on `captures/`: with the public app id,
+   anyone could read, upload or delete audio. Any future client-side storage
+   must be scoped to the authenticated owner.
 9. **InstantDB returns `null`, not `undefined`, for unset optional fields.**
    Always use `== null` checks, never `!== undefined`. A null date coerces to
    epoch 0 and produces silently absurd results.
-10. **`profiles`/`people`/`facts`/`commitments`/`captures` have public `view`
-    permission in `instant.perms.ts`.** There's no auth yet, so the web view
-    can't scope reads to a signed-in owner — it reads a single profile id from
-    an env var instead. Anyone with the Instant app id can read all of it.
-    Must be scoped to the authenticated owner before auth ships.
+10. **Every data namespace is deny-all for clients, including `view`.**
+    Verified live on 2026-10-08: a guest reads 0 rows everywhere. The
+    consequence is that the client-side `/people` web view returns nothing
+    (it shows "No one yet."). Do not reopen `view` to fix it. Re-enable it
+    only with reads scoped to an authenticated owner, or by moving the reads
+    server-side behind a gate.
 11. **Never run `setWebhook` with the production bot token.** One bot has one
     webhook; re-pointing it at a tunnel silently kills production capture with
     no error anywhere.
