@@ -21,6 +21,10 @@ const _schema = i.schema({
     captures: i.entity({
       transcript: i.string(),
       createdAt: i.date().indexed(),
+      // Telegram chat that sent the note. Counts captures per chat for the
+      // daily cap (lib/limits.ts) without relying on a person link, which
+      // notes with no recognisable person never get. Null on older rows.
+      chatId: i.string().indexed().optional(),
     }),
     facts: i.entity({
       type: i.string(),

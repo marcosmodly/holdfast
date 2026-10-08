@@ -65,6 +65,10 @@ copy. The register is "remember what matters to the people you love."
     extraction — they can disagree, and telling the user something was
     captured when it wasn't stored is the worst failure mode for this
     product.
+15. **Voice limits are checked before any download or OpenAI call.** Notes
+    over 2 minutes and the 16th note in a rolling 24 hours (per chat, counted
+    by `captures.chatId`) are rejected with a reply. Values live in
+    `lib/limits.ts`. A rejected note must cost nothing.
 
 ## Persistence
 

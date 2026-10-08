@@ -6,6 +6,13 @@ import { extract, formatExtractionSummary } from '@/lib/extract';
 import { persistExtraction } from '@/lib/persist';
 import { handleNudgeReply } from '@/lib/nudge-reply';
 import { sendTelegramMessage } from '@/lib/telegram';
+import {
+  DAILY_LIMIT_REPLY,
+  NOTE_WINDOW_MS,
+  TOO_LONG_REPLY,
+  isOverDailyLimit,
+  isTooLong,
+} from '@/lib/limits';
 
 const BOT_TOKEN = process.env.HOLDFAST_TELEGRAM_BOT_TOKEN;
 const WEBHOOK_SECRET = process.env.HOLDFAST_TELEGRAM_WEBHOOK_SECRET;
@@ -37,7 +44,7 @@ async function transcribeWithRetry(path: string): Promise<string> {
 interface TelegramMessage {
   message_id: number;
   chat: { id: number };
-  voice?: { file_id: string };
+  voice?: { file_id: string; duration?: number };
   text?: string;
 }
 
@@ -46,11 +53,34 @@ interface TelegramUpdate {
   message?: TelegramMessage;
 }
 
+async function countRecentCaptures(chatId: number, now: number): Promise<number> {
+  const { captures } = await db.query({
+    captures: {
+      $: {
+        where: { chatId: String(chatId), createdAt: { $gte: new Date(now - NOTE_WINDOW_MS) } },
+      },
+    },
+  });
+  return captures.length;
+}
+
 async function handleVoiceMessage(
   chatId: number,
   messageId: number,
   fileId: string,
+  durationSeconds: number | undefined,
 ): Promise<void> {
+  // Guardrails run before any download or OpenAI call, so a rejected note
+  // costs nothing. The length check needs no query, so it goes first.
+  if (isTooLong(durationSeconds)) {
+    await sendTelegramMessage(chatId, TOO_LONG_REPLY);
+    return;
+  }
+  if (isOverDailyLimit(await countRecentCaptures(chatId, Date.now()))) {
+    await sendTelegramMessage(chatId, DAILY_LIMIT_REPLY);
+    return;
+  }
+
   const fileInfoRes = await fetch(`${TELEGRAM_API}/getFile?file_id=${fileId}`);
   const fileInfo = await fileInfoRes.json();
   if (!fileInfoRes.ok || !fileInfo.ok) {
@@ -82,7 +112,11 @@ async function handleVoiceMessage(
   const captureId = id();
   const captureTime = Date.now();
   await db.transact(
-    db.tx.captures[captureId].create({ transcript, createdAt: captureTime }),
+    db.tx.captures[captureId].create({
+      transcript,
+      createdAt: captureTime,
+      chatId: String(chatId),
+    }),
   );
 
   // Non-negotiable: delete audio only after the transcript is persisted.
@@ -143,7 +177,12 @@ export async function POST(request: NextRequest) {
 
     if (message && chatId !== undefined) {
       if (message.voice) {
-        await handleVoiceMessage(chatId, message.message_id, message.voice.file_id);
+        await handleVoiceMessage(
+          chatId,
+          message.message_id,
+          message.voice.file_id,
+          message.voice.duration,
+        );
       } else if (message.text) {
         await sendTelegramMessage(chatId, await handleNudgeReply(chatId, message.text));
       } else {
