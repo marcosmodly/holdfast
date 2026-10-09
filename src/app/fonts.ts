@@ -1,6 +1,6 @@
 import { Fraunces, Inter } from 'next/font/google';
 
-// Scoped to the landing route only — static weight instances (not the
+// Scoped to the landing and legal routes — static weight instances (not the
 // `variable` axis) because Fraunces' full variable range is large and the
 // page only ever uses 400/500/600.
 export const fraunces = Fraunces({

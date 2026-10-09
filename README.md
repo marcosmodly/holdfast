@@ -20,7 +20,8 @@ It's deliberately not a CRM and doesn't scrape your contacts or social graph. Yo
 - Next.js (App Router) + TypeScript
 - InstantDB for data
 - Telegram Bot API for capture and delivery
-- OpenAI `gpt-4o-mini-transcribe` for speech-to-text
+- OpenAI `gpt-4o-mini-transcribe` + `gpt-4o-mini` for speech-to-text and extraction
+  (Groq's free tier until there are paying users, see `src/lib/ai-provider.ts`)
 - Vercel for hosting + cron
 
 ## Status

@@ -17,7 +17,14 @@ copy. The register is "remember what matters to the people you love."
 - Vercel (hosting + cron)
 - Tailwind + shadcn/ui
 - Telegram Bot API for capture and delivery
-- OpenAI `gpt-4o-mini-transcribe` for speech-to-text
+- OpenAI `gpt-4o-mini-transcribe` for speech-to-text, `gpt-4o-mini` for extraction
+- Exception, until there are paying users: Groq's free tier
+  (`whisper-large-v3-turbo` + `openai/gpt-oss-120b`), chosen by
+  `HOLDFAST_AI_PROVIDER=groq`. Switch back to OpenAI once anyone pays. The
+  provider lives in `lib/ai-provider.ts` only; never hard-code a provider URL
+  or model in app code (`scripts/measure-*.ts` are OpenAI cost/latency
+  benchmarks on purpose). The landing page privacy section names the provider
+  from the same setting, so it stays true after a switch.
 
 ## Non-negotiables
 
@@ -65,7 +72,7 @@ copy. The register is "remember what matters to the people you love."
     extraction — they can disagree, and telling the user something was
     captured when it wasn't stored is the worst failure mode for this
     product.
-15. **Voice limits are checked before any download or OpenAI call.** Notes
+15. **Voice limits are checked before any download or AI call.** Notes
     over 2 minutes and the 16th note in a rolling 24 hours (per chat, counted
     by `captures.chatId`) are rejected with a reply. Values live in
     `lib/limits.ts`. A rejected note must cost nothing.
@@ -86,6 +93,8 @@ HOLDFAST_TELEGRAM_WEBHOOK_SECRET=
 HOLDFAST_CRON_SECRET=
 CRON_SECRET=
 OPENAI_API_KEY=
+HOLDFAST_AI_PROVIDER=
+HOLDFAST_GROQ_API_KEY=
 HOLDFAST_RESEND_API_KEY=
 HOLDFAST_EMAIL_FROM=
 HOLDFAST_EMAIL_REPLY_TO=
@@ -156,6 +165,18 @@ was fixed by moving work OUT of the prompt and INTO code:
 
 When the model gets something wrong twice, do not rewrite the rule.
 Ask what deterministic code could do that job instead.
+
+## Legal pages
+
+`/privacy` and `/terms` describe what the code does today: what is stored
+(`instant.schema.ts`), when audio is deleted (the webhook), which companies
+handle data (`lib/ai-provider.ts`, `lib/email.ts`, Telegram, Instant, Vercel)
+and the limits (`lib/limits.ts`, `lib/nudges.ts`). Any change to those means
+updating the matching page and its `UPDATED` date in the same commit. The
+privacy policy promises to tell users before a new company handles their
+notes, so switching AI provider means telling users first. The AI provider's
+name on both the landing page and `/privacy` comes from
+`lib/ai-data-policy.ts`, never hard-coded.
 
 ## Copy rules
 

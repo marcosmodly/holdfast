@@ -1,9 +1,12 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { fraunces, inter } from './fonts';
 import styles from './waitlist.module.css';
 import { WaitlistForm } from '@/components/waitlist-form';
 import { ScrollReveal } from '@/components/scroll-reveal';
 import { AudioLines, FileText, MessageCircle, Play, ShieldCheck, Trash2 } from 'lucide-react';
+import { HoldfastLogo } from '@/components/holdfast-logo';
+import { currentAiDataPolicy } from '@/lib/ai-data-policy';
 
 // Bar heights (px) for the decorative voice-note waveform in the hero demo.
 const WAVE = [6, 10, 16, 12, 20, 14, 8, 18, 22, 12, 16, 9, 14, 19, 11, 7, 13, 17, 10, 6];
@@ -30,23 +33,15 @@ export default async function Home({ searchParams }: HomeProps) {
   const params = await searchParams;
   const rawRef = Array.isArray(params.ref) ? params.ref[0] : params.ref;
   const source = rawRef?.trim() || undefined;
+  // The privacy section must name the service that actually reads the notes.
+  const ai = currentAiDataPolicy();
 
   return (
     <div className={`${styles.page} ${fraunces.variable} ${inter.variable}`}>
       <header className={styles.header}>
         <div className={styles.wrap}>
           <div className={styles.logo}>
-            <svg width="30" height="30" viewBox="0 0 28 28" fill="none" aria-hidden="true">
-              <path
-                d="M4 4h20a4 4 0 0 1 4 4v8a4 4 0 0 1-4 4H10l-4 5 .4-5H4a4 4 0 0 1-4-4V8a4 4 0 0 1 4-4Z"
-                transform="translate(0,1)"
-                fill="#B4552D"
-              />
-              <g stroke="#FBF7F2" strokeWidth="1.9" strokeLinecap="round">
-                <path d="M6.5 13v0.2M10 11v4.4M13.5 8.6v9.2M17 10.4v5.6M20.5 12.4v1.6" />
-              </g>
-            </svg>
-            Holdfast
+            <HoldfastLogo />
           </div>
         </div>
       </header>
@@ -259,7 +254,8 @@ export default async function Home({ searchParams }: HomeProps) {
               Where your voice note goes.
             </h2>
             <p className={`${styles.privacyLede} ${styles.reveal}`} data-reveal>
-              Here is what happens today, in plain words.
+              Here is what happens today, in plain words. The{' '}
+              <Link href="/privacy">privacy policy</Link> has the full detail.
             </p>
             <ul className={styles.privacyList}>
               <li className={styles.reveal} data-reveal>
@@ -268,8 +264,8 @@ export default async function Home({ searchParams }: HomeProps) {
                 </span>
                 <h3>It gets turned into text.</h3>
                 <p>
-                  We send your recording to OpenAI to transcribe it. OpenAI then reads the text
-                  to pick out the people, dates and promises.
+                  We send your recording to {ai.name} to transcribe it. {ai.name} then reads the
+                  text to pick out the people, dates and promises.
                 </p>
               </li>
               <li className={styles.reveal} data-reveal>
@@ -298,14 +294,9 @@ export default async function Home({ searchParams }: HomeProps) {
                 </span>
                 <h3>It isn&apos;t used for training.</h3>
                 <p>
-                  OpenAI says it doesn&apos;t train its models on data sent through its API by
-                  default. It may keep the text for up to 30 days for abuse checks.{' '}
-                  <a
-                    href="https://developers.openai.com/api/docs/guides/your-data"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Read OpenAI&apos;s data policy
+                  {ai.policy}{' '}
+                  <a href={ai.dataPolicyUrl} target="_blank" rel="noopener noreferrer">
+                    Read {ai.name}&apos;s data policy
                   </a>
                   .
                 </p>
@@ -390,6 +381,9 @@ export default async function Home({ searchParams }: HomeProps) {
           </p>
           <p>
             &copy; 2026 Holdfast. <a href="mailto:hello@useholdfast.co">hello@useholdfast.co</a>
+          </p>
+          <p>
+            <Link href="/privacy">Privacy</Link> · <Link href="/terms">Terms</Link>
           </p>
         </div>
       </footer>

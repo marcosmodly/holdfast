@@ -70,7 +70,7 @@ async function handleVoiceMessage(
   fileId: string,
   durationSeconds: number | undefined,
 ): Promise<void> {
-  // Guardrails run before any download or OpenAI call, so a rejected note
+  // Guardrails run before any download or AI call, so a rejected note
   // costs nothing. The length check needs no query, so it goes first.
   if (isTooLong(durationSeconds)) {
     await sendTelegramMessage(chatId, TOO_LONG_REPLY);

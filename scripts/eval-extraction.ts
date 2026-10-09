@@ -1,6 +1,7 @@
 // Runs the fixture set in tests/extraction-cases.md against every extraction
-// prompt version and reports a pass/fail comparison. Calls OpenAI only; never
-// touches Instant, so it's safe to run against the real .env.local (see
+// prompt version and reports a pass/fail comparison. Calls the AI provider
+// only (see src/lib/ai-provider.ts); never touches Instant, so it's safe to
+// run against the real .env.local (see
 // CLAUDE.md "Persistence": test scripts must never write to the production
 // Instant app).
 //
@@ -12,6 +13,8 @@
 // the database, not just the raw model output.
 //
 // Run via `npm run eval:extraction` (loads .env.local via `tsx --env-file`).
+// Production only uses V4, so `npm run eval:extraction -- --only=V4` is the
+// check to run after switching provider.
 import {
   EXTRACTION_PROMPT_V1,
   EXTRACTION_PROMPT_V2,
@@ -33,6 +36,7 @@ import {
   resolveCommitmentDueDate,
 } from '../src/lib/persist';
 import { resolveFinalDate } from '../src/lib/resolve-date';
+import { getAiProvider } from '../src/lib/ai-provider';
 
 const CAPTURE_DATE = '2026-08-21'; // Friday — matches tests/extraction-cases.md
 
@@ -251,6 +255,14 @@ const VERSIONS: PromptVersion[] = [
 
 const TRIALS = 3;
 
+// `--only=V4` runs a single prompt version instead of all of them.
+const ONLY = process.argv.find((arg) => arg.startsWith('--only='))?.slice('--only='.length);
+
+// Groq's free tier allows ~8K tokens a minute, about four extraction calls
+// of ~1.6K tokens. Three a minute stays clear of it, so cases fail on the
+// model's answer, not on a 429.
+const PAUSE_BETWEEN_CALLS_MS = getAiProvider().name === 'groq' ? 20_000 : 0;
+
 async function runOne(
   version: PromptVersion,
   testCase: Case,
@@ -275,12 +287,22 @@ async function runOne(
 }
 
 async function main() {
+  const provider = getAiProvider();
+  const versions = ONLY ? VERSIONS.filter((v) => v.name === ONLY) : VERSIONS;
+  if (versions.length === 0) {
+    throw new Error(`Unknown prompt version "${ONLY}". Use one of: ${VERSIONS.map((v) => v.name).join(', ')}`);
+  }
+  console.log(`Provider: ${provider.displayName}, model: ${provider.extractionModel}`);
+
   const results: Record<string, string[][]> = {};
-  for (const version of VERSIONS) {
+  for (const version of versions) {
     results[version.name] = CASES.map(() => []);
     for (let t = 0; t < TRIALS; t++) {
       for (let i = 0; i < CASES.length; i++) {
         const testCase = CASES[i];
+        if (PAUSE_BETWEEN_CALLS_MS > 0) {
+          await new Promise((resolve) => setTimeout(resolve, PAUSE_BETWEEN_CALLS_MS));
+        }
         const result = await runOne(version, testCase);
         results[version.name][i].push(result.pass ? 'PASS' : 'FAIL');
         if (!result.pass) {
@@ -292,13 +314,13 @@ async function main() {
   }
 
   console.log('\n--- 3-trial results (P=pass F=fail per trial) ---');
-  console.log('Case'.padEnd(38) + VERSIONS.map((v) => v.name.padEnd(10)).join(''));
+  console.log('Case'.padEnd(38) + versions.map((v) => v.name.padEnd(10)).join(''));
   for (let i = 0; i < CASES.length; i++) {
-    const row = VERSIONS.map((v) => results[v.name][i].map((r) => r[0]).join('').padEnd(10)).join('');
+    const row = versions.map((v) => results[v.name][i].map((r) => r[0]).join('').padEnd(10)).join('');
     console.log(`${String(CASES[i].id).padStart(2, '0')}. ${CASES[i].name}`.padEnd(38) + row);
   }
 
-  for (const version of VERSIONS) {
+  for (const version of versions) {
     const totalPass = results[version.name].reduce(
       (sum, trials) => sum + trials.filter((r) => r === 'PASS').length,
       0,

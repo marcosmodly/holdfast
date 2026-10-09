@@ -1,0 +1,78 @@
+/* Long-form text for the privacy policy and terms. Sits inside the landing
+   page's `.page` (waitlist.module.css), which defines the colour and spacing
+   tokens used here. */
+
+.homeLink {
+  color: inherit;
+  text-decoration: none;
+  width: fit-content;
+}
+
+.doc {
+  max-width: 68ch;
+  padding: var(--sp-4) 0 var(--sp-6);
+}
+
+.doc h1 {
+  font-size: clamp(38px, 7vw, 54px);
+  margin-bottom: var(--sp-1);
+}
+
+.updated {
+  color: var(--ink-soft);
+  font-size: 15px;
+  margin-bottom: var(--sp-4);
+}
+
+.doc h2 {
+  font-size: clamp(24px, 4vw, 28px);
+  margin: var(--sp-5) 0 var(--sp-2);
+}
+
+.doc p {
+  margin: 0 0 var(--sp-2);
+}
+
+/* Tailwind's preflight strips list markers; legal text needs them back. */
+.doc ul,
+.doc ol {
+  margin: 0 0 var(--sp-2);
+  padding-left: 1.3em;
+}
+.doc ul {
+  list-style: disc;
+}
+.doc ol {
+  list-style: decimal;
+}
+
+.doc li {
+  margin-bottom: var(--sp-1);
+  padding-left: 0.2em;
+}
+
+.doc li::marker {
+  color: var(--accent);
+}
+
+.summary {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: var(--sp-3);
+  margin-bottom: var(--sp-2);
+}
+
+.summary h2 {
+  font-size: 20px;
+  margin: 0 0 var(--sp-2);
+}
+
+.summary ul {
+  margin-bottom: 0;
+}
+
+/* Warranty disclaimers and liability limits must be conspicuous. */
+.conspicuous {
+  font-weight: 600;
+}

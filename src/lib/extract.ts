@@ -1,8 +1,6 @@
 import { EXTRACTION_PROMPT_V4, fillPromptTemplate } from '@/lib/extraction-prompt';
 import { resolveFinalDate } from '@/lib/resolve-date';
-
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-const EXTRACTION_MODEL = 'gpt-4o-mini';
+import { getAiProvider } from '@/lib/ai-provider';
 
 export type FactType = 'life_event' | 'state' | 'detail';
 export type Sentiment = 'worried' | 'happy' | 'neutral' | 'low';
@@ -128,6 +126,10 @@ export const EXTRACTION_SCHEMA_V3 = {
   },
 };
 
+// No `met_on` here: the capture date is known to us exactly and
+// runExtraction() sets it in code. Asking the model for it only gave it a
+// field to get wrong (on Groq, gpt-oss returned null and the whole answer was
+// rejected for not matching the schema).
 export const EXTRACTION_SCHEMA_V4 = {
   name: 'holdfast_extraction_v4',
   strict: true,
@@ -135,7 +137,6 @@ export const EXTRACTION_SCHEMA_V4 = {
     type: 'object',
     properties: {
       person_name: { type: ['string', 'null'] },
-      met_on: { type: 'string' },
       facts: {
         type: 'array',
         items: {
@@ -167,12 +168,33 @@ export const EXTRACTION_SCHEMA_V4 = {
       },
       sentiment: { type: 'string', enum: ['worried', 'happy', 'neutral', 'low'] },
     },
-    required: ['person_name', 'met_on', 'facts', 'commitments', 'sentiment'],
+    required: ['person_name', 'facts', 'commitments', 'sentiment'],
     additionalProperties: false,
   },
 };
 
 type JsonSchemaSpec = { name: string; strict: boolean; schema: Record<string, unknown> };
+
+// Groq's free tier allows ~8K tokens a minute, about four notes, so a few
+// people sending notes in the same minute get a 429. The response says how
+// long to wait (usually a few seconds), but the allowance refills gradually,
+// so one wait isn't always enough. Retry a few times, never waiting more than
+// 20s in total; longer waits (e.g. the daily limit is used up) fail straight
+// away.
+const MAX_RATE_LIMIT_RETRIES = 3;
+const MAX_TOTAL_RATE_LIMIT_WAIT_MS = 20_000;
+const DEFAULT_RATE_LIMIT_WAIT_MS = 5_000;
+// Groq rounds `retry-after`; waiting exactly that long often still gets a 429.
+const RATE_LIMIT_BUFFER_MS = 1_000;
+
+// Turns a 429's `retry-after` header (seconds) into how long to wait before
+// the next retry.
+export function rateLimitWaitMs(retryAfter: string | null): number {
+  const seconds = retryAfter == null || retryAfter === '' ? NaN : Number(retryAfter);
+  return Number.isFinite(seconds)
+    ? Math.ceil(seconds * 1000) + RATE_LIMIT_BUFFER_MS
+    : DEFAULT_RATE_LIMIT_WAIT_MS;
+}
 
 // Calls the model with a fully-rendered system prompt and a response schema,
 // and normalizes the result. Shared by `extract()` (always V4 +
@@ -184,39 +206,55 @@ export async function runExtraction<T extends { met_on: string }>(
   systemPrompt: string,
   schema: JsonSchemaSpec,
 ): Promise<T> {
-  if (!OPENAI_API_KEY) {
-    throw new Error('Missing OPENAI_API_KEY environment variable');
+  const provider = getAiProvider();
+  if (!provider.apiKey) {
+    throw new Error(`Missing ${provider.apiKeyEnvVar} environment variable`);
   }
 
   if (process.env.NODE_ENV === 'development') {
     console.log('Extraction input:', JSON.stringify({ captureDate, transcript }, null, 2));
   }
 
-  const res = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${OPENAI_API_KEY}`,
-      'content-type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: EXTRACTION_MODEL,
-      temperature: 0,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: transcript },
-      ],
-      response_format: { type: 'json_schema', json_schema: schema },
-    }),
-  });
+  const send = () =>
+    fetch(`${provider.baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${provider.apiKey}`,
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: provider.extractionModel,
+        temperature: 0,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: transcript },
+        ],
+        response_format: { type: 'json_schema', json_schema: schema },
+        ...provider.extractionParams,
+      }),
+    });
+
+  let res = await send();
+  let waitedMs = 0;
+  for (let retry = 0; retry < MAX_RATE_LIMIT_RETRIES && res.status === 429; retry++) {
+    const waitMs = rateLimitWaitMs(res.headers.get('retry-after'));
+    if (waitedMs + waitMs > MAX_TOTAL_RATE_LIMIT_WAIT_MS) break;
+    console.warn(`${provider.displayName} rate limit hit, retrying extraction in ${waitMs}ms`);
+    // Release the unread 429 body so its connection is freed for the retry.
+    await res.body?.cancel();
+    await new Promise((resolve) => setTimeout(resolve, waitMs));
+    waitedMs += waitMs;
+    res = await send();
+  }
 
   if (!res.ok) {
-    throw new Error(`OpenAI extraction failed: ${res.status} ${await res.text()}`);
+    throw new Error(`${provider.displayName} extraction failed: ${res.status} ${await res.text()}`);
   }
 
   const body = await res.json();
   const content = body.choices?.[0]?.message?.content;
   if (!content) {
-    throw new Error('OpenAI extraction returned no content');
+    throw new Error(`${provider.displayName} extraction returned no content`);
   }
 
   const result = JSON.parse(content) as T;

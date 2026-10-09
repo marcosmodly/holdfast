@@ -1,7 +1,5 @@
 import { db } from '@/lib/instant-admin';
-
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-const TRANSCRIBE_MODEL = 'gpt-4o-mini-transcribe';
+import { getAiProvider } from '@/lib/ai-provider';
 
 async function downloadAudio(path: string): Promise<Buffer> {
   const result = await db.query({ $files: { $: { where: { path } } } });
@@ -19,10 +17,12 @@ async function downloadAudio(path: string): Promise<Buffer> {
 }
 
 // Downloads the audio at `path` from Instant storage and transcribes it via
-// OpenAI. Does not delete the file — callers own the delete-after-persist step.
+// the configured AI provider (see ai-provider.ts). Does not delete the file —
+// callers own the delete-after-persist step.
 export async function transcribe(path: string): Promise<string> {
-  if (!OPENAI_API_KEY) {
-    throw new Error('Missing OPENAI_API_KEY environment variable');
+  const provider = getAiProvider();
+  if (!provider.apiKey) {
+    throw new Error(`Missing ${provider.apiKeyEnvVar} environment variable`);
   }
 
   const audio = await downloadAudio(path);
@@ -33,18 +33,19 @@ export async function transcribe(path: string): Promise<string> {
     new Blob([new Uint8Array(audio)], { type: 'audio/ogg' }),
     path.split('/').pop() ?? 'audio.ogg',
   );
-  formData.append('model', TRANSCRIBE_MODEL);
+  formData.append('model', provider.transcribeModel);
 
-  const res = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+  const res = await fetch(`${provider.baseUrl}/audio/transcriptions`, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${OPENAI_API_KEY}` },
+    headers: { Authorization: `Bearer ${provider.apiKey}` },
     body: formData,
   });
 
   if (!res.ok) {
-    throw new Error(`OpenAI transcription failed: ${res.status} ${await res.text()}`);
+    throw new Error(`${provider.displayName} transcription failed: ${res.status} ${await res.text()}`);
   }
 
   const result = (await res.json()) as { text: string };
-  return result.text;
+  // Groq's Whisper starts the text with a space.
+  return result.text.trim();
 }
