@@ -6,6 +6,13 @@ import { WaitlistForm } from '@/components/waitlist-form';
 import { ScrollReveal } from '@/components/scroll-reveal';
 import { AudioLines, FileText, MessageCircle, Play, ShieldCheck, Trash2 } from 'lucide-react';
 import { HoldfastLogo } from '@/components/holdfast-logo';
+import { SeaScene } from '@/components/pixel/sea-scene';
+import { StepArt } from '@/components/pixel/step-art';
+import { CampfireScene } from '@/components/pixel/campfire-scene';
+import { NightSeaScene } from '@/components/pixel/night-sea-scene';
+import { StatArt } from '@/components/pixel/stat-art';
+import { DeskScene } from '@/components/pixel/desk-scene';
+import { PrivacyFlow } from '@/components/pixel/privacy-flow';
 import { currentAiDataPolicy } from '@/lib/ai-data-policy';
 
 // Bar heights (px) for the decorative voice-note waveform in the hero demo.
@@ -38,7 +45,7 @@ export default async function Home({ searchParams }: HomeProps) {
 
   return (
     <div className={`${styles.page} ${fraunces.variable} ${inter.variable}`}>
-      <header className={styles.header}>
+      <header className={`${styles.header} ${styles.headerOverSky}`}>
         <div className={styles.wrap}>
           <div className={styles.logo}>
             <HoldfastLogo />
@@ -48,6 +55,7 @@ export default async function Home({ searchParams }: HomeProps) {
 
       <main>
         <section className={styles.hero}>
+          <SeaScene className={styles.heroScene} />
           <div className={`${styles.wrap} ${styles.heroGrid}`}>
             <div className={styles.heroCopy}>
               <p className={styles.eyebrow}>
@@ -116,20 +124,25 @@ export default async function Home({ searchParams }: HomeProps) {
             </figure>
           </div>
 
+          {/* The pixel sea behind the hero puts its horizon on this line. */}
+          <div className={styles.horizon} data-horizon aria-hidden="true" />
+
           {/* Click to play: browsers block autoplay with sound. Source lives in
               ../holdfast-video (Remotion); see its README to rebuild. */}
           <div className={`${styles.wrap} ${styles.heroVideo}`}>
-            <video
-              className={styles.video}
-              controls
-              playsInline
-              preload="none"
-              poster="/video/holdfast-explainer-poster.jpg"
-              aria-label="How Holdfast works, a 72 second video with narration"
-            >
-              <source src="/video/holdfast-explainer.mp4" type="video/mp4" />
-              <track kind="captions" src="/video/holdfast-explainer.vtt" srcLang="en" label="English" />
-            </video>
+            <div className={styles.videoFrame}>
+              <video
+                className={styles.video}
+                controls
+                playsInline
+                preload="none"
+                poster="/video/holdfast-explainer-poster.jpg"
+                aria-label="How Holdfast works, a 72 second video with narration"
+              >
+                <source src="/video/holdfast-explainer.mp4" type="video/mp4" />
+                <track kind="captions" src="/video/holdfast-explainer.vtt" srcLang="en" label="English" />
+              </video>
+            </div>
             <p className={styles.videoCaption}>Watch how it works. 72 seconds, sound on, captions available.</p>
           </div>
         </section>
@@ -141,14 +154,17 @@ export default async function Home({ searchParams }: HomeProps) {
             </h2>
             <div className={styles.grid}>
               <div className={`${styles.stat} ${styles.reveal}`} data-reveal>
+                <StatArt kind="alone" className={styles.statArt} />
                 <div className={styles.num}>12%</div>
                 <p>of Americans said they had no close friends in 2021, up from just 3% in 1990.</p>
               </div>
               <div className={`${styles.stat} ${styles.reveal}`} data-reveal>
+                <StatArt kind="circle" className={styles.statArt} />
                 <div className={styles.num}>27%</div>
                 <p>of men had six or more close friends, down from 55% three decades earlier.</p>
               </div>
               <div className={`${styles.stat} ${styles.reveal}`} data-reveal>
+                <StatArt kind="hours" className={styles.statArt} />
                 <div className={styles.num}>200</div>
                 <p>hours of shared time, roughly, before someone becomes a close friend.</p>
               </div>
@@ -171,7 +187,10 @@ export default async function Home({ searchParams }: HomeProps) {
             </p>
             <ol className={styles.steps}>
               <li className={styles.reveal} data-reveal>
-                <div>
+                <div className={styles.stepArt}>
+                  <StepArt kind="talk" className={styles.stepCanvas} />
+                </div>
+                <div className={styles.stepText}>
                   <h3>Say what happened</h3>
                   <p>
                     &quot;Coffee with Marco. His mom&apos;s surgery is on the 14th. He&apos;s
@@ -181,7 +200,10 @@ export default async function Home({ searchParams }: HomeProps) {
                 </div>
               </li>
               <li className={styles.reveal} data-reveal>
-                <div>
+                <div className={styles.stepArt}>
+                  <StepArt kind="sort" className={styles.stepCanvas} />
+                </div>
+                <div className={styles.stepText}>
                   <h3>Holdfast sorts it out</h3>
                   <p>
                     It pulls out who you saw, what&apos;s happening in their life, the dates
@@ -190,7 +212,10 @@ export default async function Home({ searchParams }: HomeProps) {
                 </div>
               </li>
               <li className={styles.reveal} data-reveal>
-                <div>
+                <div className={styles.stepArt}>
+                  <StepArt kind="nudge" className={styles.stepCanvas} />
+                </div>
+                <div className={styles.stepText}>
                   <h3>It finds you at the right moment</h3>
                   <p>
                     On the 15th: <em>Marco&apos;s mom had surgery yesterday. Ask how it
@@ -205,46 +230,56 @@ export default async function Home({ searchParams }: HomeProps) {
         </section>
 
         <section className={styles.adhd}>
-          <div className={styles.wrap}>
-            <h2 className={styles.reveal} data-reveal>
-              Forgetting isn&apos;t the same as not caring.
-            </h2>
-            <p className={styles.reveal} data-reveal>
-              If you have ADHD, this might sound familiar. Out of sight, out of mind, even with
-              people you love. It says nothing about how much they matter to you.
-            </p>
-            <p className={styles.reveal} data-reveal>
-              Most friend apps ask you to remember to open them, find the person, and type it all
-              up. That&apos;s one more thing to forget.
-            </p>
-            <p className={styles.reveal} data-reveal>
-              <strong>
-                Holdfast asks for twenty seconds in a chat you already use. After that, the
-                remembering is its job, not yours.
-              </strong>
-            </p>
+          <div className={`${styles.wrap} ${styles.splitGrid} ${styles.splitGridFlip}`}>
+            <div>
+              <h2 className={styles.reveal} data-reveal>
+                Forgetting isn&apos;t the same as not caring.
+              </h2>
+              <p className={styles.reveal} data-reveal>
+                If you have ADHD, this might sound familiar. Out of sight, out of mind, even with
+                people you love. It says nothing about how much they matter to you.
+              </p>
+              <p className={styles.reveal} data-reveal>
+                Most friend apps ask you to remember to open them, find the person, and type it all
+                up. That&apos;s one more thing to forget.
+              </p>
+              <p className={styles.reveal} data-reveal>
+                <strong>
+                  Holdfast asks for twenty seconds in a chat you already use. After that, the
+                  remembering is its job, not yours.
+                </strong>
+              </p>
+            </div>
+            <div className={`${styles.sceneArt} ${styles.reveal}`} data-reveal>
+              <DeskScene className={styles.sceneCanvas} />
+            </div>
           </div>
         </section>
 
         <section className={styles.why}>
-          <div className={styles.wrap}>
-            <h2 className={styles.reveal} data-reveal>
-              No app can import the people you love.
-            </h2>
-            <p className={styles.reveal} data-reveal>
-              Facebook will only tell you which friends already use this app. Instagram closed
-              its doors to third-party consumer apps at the end of 2024. Snapchat never opened a
-              social graph at all.
-            </p>
-            <p className={styles.reveal} data-reveal>
-              So none of this gets scraped from anywhere.{' '}
-              <strong>It only exists because you said it out loud.</strong>
-            </p>
-            <p className={styles.reveal} data-reveal>
-              Which, honestly, is the right way round. Nobody needs a list of 800
-              acquaintances. You need the fifteen people you&apos;d be gutted to drift away
-              from. Only you know who they are.
-            </p>
+          <div className={`${styles.wrap} ${styles.splitGrid}`}>
+            <div>
+              <h2 className={styles.reveal} data-reveal>
+                No app can import the people you love.
+              </h2>
+              <p className={styles.reveal} data-reveal>
+                Facebook will only tell you which friends already use this app. Instagram closed
+                its doors to third-party consumer apps at the end of 2024. Snapchat never opened a
+                social graph at all.
+              </p>
+              <p className={styles.reveal} data-reveal>
+                So none of this gets scraped from anywhere.{' '}
+                <strong>It only exists because you said it out loud.</strong>
+              </p>
+              <p className={styles.reveal} data-reveal>
+                Which, honestly, is the right way round. Nobody needs a list of 800
+                acquaintances. You need the fifteen people you&apos;d be gutted to drift away
+                from. Only you know who they are.
+              </p>
+            </div>
+            <div className={`${styles.sceneArt} ${styles.reveal}`} data-reveal>
+              <CampfireScene className={styles.sceneCanvas} />
+            </div>
           </div>
         </section>
 
@@ -257,6 +292,9 @@ export default async function Home({ searchParams }: HomeProps) {
               Here is what happens today, in plain words. The{' '}
               <Link href="/privacy">privacy policy</Link> has the full detail.
             </p>
+            <div className={styles.reveal} data-reveal>
+              <PrivacyFlow className={styles.privacyArt} />
+            </div>
             <ul className={styles.privacyList}>
               <li className={styles.reveal} data-reveal>
                 <span className={styles.privacyIcon} aria-hidden="true">
@@ -365,6 +403,7 @@ export default async function Home({ searchParams }: HomeProps) {
 
         <section className={styles.cta} id="join">
           <div className={`${styles.wrap} ${styles.ctaPanel}`}>
+            <NightSeaScene className={styles.ctaScene} />
             <h2>Say it out loud once. Holdfast remembers the rest.</h2>
             <p className={styles.ctaLede}>
               Holdfast is in early development. Join the waitlist and you&apos;ll be among the

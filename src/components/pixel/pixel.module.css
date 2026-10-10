@@ -1,0 +1,17 @@
+/* Zero specificity, so the class the parent passes in can position the box
+   (the hero scene, for one, is absolutely positioned). */
+:where(.box) {
+  position: relative;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* Absolutely positioned so the canvas, which is rounded up to whole art
+   pixels and can be a few pixels bigger than the box, never resizes it. */
+.canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: block;
+  image-rendering: pixelated;
+}

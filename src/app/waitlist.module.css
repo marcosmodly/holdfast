@@ -66,6 +66,15 @@
 .header {
   padding: var(--sp-3) 0;
 }
+/* On the landing page the header floats over the hero, so the sky starts
+   at the very top. The hero's top padding makes room for it. */
+.headerOverSky {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1;
+}
 .logo {
   display: flex;
   align-items: center;
@@ -79,9 +88,29 @@
   flex-shrink: 0;
 }
 
-/* Hero */
+/* Hero. The pixel sea (components/pixel/sea-scene.tsx) fills the whole
+   section behind the content: sky behind the copy, the horizon on .horizon,
+   the video in the water, and sand in the bottom padding. */
 .hero {
-  padding: var(--sp-5) 0 var(--sp-6);
+  /* Secondary text a step darker than elsewhere, to stay readable on the
+     coloured sky. */
+  --ink-soft: #463c36;
+
+  position: relative;
+  isolation: isolate;
+  /* 84px is the floating header's height. */
+  padding: calc(var(--sp-5) + 84px) 0 168px;
+}
+.heroScene {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+}
+/* 1px tall, not 0: an empty box lets the video's top margin collapse
+   through it, which would put the video right on the horizon. */
+.horizon {
+  height: 1px;
+  margin-top: 128px;
 }
 .heroGrid {
   display: grid;
@@ -113,9 +142,19 @@
   max-width: 16ch;
 }
 
-/* Hero explainer video, full width under the hero grid */
+/* Hero explainer video, floating in the sea under the horizon. Narrower than
+   the wrap so the kelp on either side stays in view on wide screens. */
 .heroVideo {
-  margin-top: var(--sp-5);
+  max-width: 920px;
+  margin-top: 112px;
+  text-align: center;
+}
+.videoFrame {
+  padding: 10px;
+  background: rgba(255, 253, 251, 0.2);
+  border: 1px solid rgba(255, 253, 251, 0.45);
+  border-radius: 32px;
+  box-shadow: 0 30px 60px -24px rgba(12, 32, 38, 0.65);
 }
 .video {
   display: block;
@@ -123,15 +162,17 @@
   height: auto;
   aspect-ratio: 16 / 9;
   background: var(--bg-warm);
-  border: 1px solid var(--line);
-  border-radius: 24px;
-  box-shadow: 0 1px 2px rgba(42, 35, 32, 0.04), 0 18px 40px -18px rgba(42, 35, 32, 0.22);
+  border-radius: 22px;
 }
+/* A pill, so the caption stays readable over the kelp moving behind it. */
 .videoCaption {
+  display: inline-block;
   margin-top: var(--sp-2);
-  text-align: center;
+  padding: 4px 14px;
   font-size: 15px;
-  color: var(--ink-soft);
+  color: #eef5f1;
+  background: rgba(20, 46, 54, 0.6);
+  border-radius: 16px;
 }
 
 /* Hero demo: a static chat showing one capture and one nudge */
@@ -396,11 +437,10 @@
   color: #a32b1c;
 }
 
-/* Stats */
+/* Stats. No top border: the hero's sand fades straight into this colour. */
 .stats {
   background: var(--bg-warm);
   padding: var(--sp-6) 0;
-  border-top: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
 }
 .stats h2 {
@@ -418,6 +458,12 @@
   border: 1px solid var(--line);
   border-radius: 14px;
   padding: var(--sp-3);
+}
+/* 32 x 18 art pixels at 4 CSS pixels each (see components/pixel/stat-art.tsx). */
+.statArt {
+  width: 128px;
+  height: 72px;
+  margin-bottom: var(--sp-2);
 }
 .stat .num {
   font-family: var(--serif);
@@ -450,6 +496,7 @@
   list-style: none;
   counter-reset: s;
   display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
   gap: var(--sp-3);
   margin: 0;
   padding: 0;
@@ -460,13 +507,42 @@
   max-width: 52ch;
   margin: calc(var(--sp-2) * -1) 0 var(--sp-4);
 }
+/* Each step is a card: pixel illustration on top, then the number beside
+   the text. */
 .steps li {
   counter-increment: s;
-  display: flex;
-  gap: var(--sp-2);
-  align-items: flex-start;
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr);
+  align-content: start;
+  gap: var(--sp-3) 14px;
+  padding: 12px 12px var(--sp-3);
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+}
+.stepArt {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  display: grid;
+  justify-items: center;
+  background: var(--bg-warm);
+  border-radius: 12px;
+  overflow: hidden;
+}
+/* 48 x 38 art pixels at 4 CSS pixels each: the 48 x 32 stage plus headroom
+   (see components/pixel/step-art.tsx). */
+.stepCanvas {
+  width: 192px;
+  height: 152px;
+}
+.stepText {
+  grid-column: 2;
+  grid-row: 2;
+  padding-right: 8px;
 }
 .steps li::before {
+  grid-column: 1;
+  grid-row: 2;
   content: counter(s);
   flex-shrink: 0;
   width: 38px;
@@ -490,7 +566,42 @@
   max-width: 56ch;
 }
 
+/* Text beside a pixel scene (the ADHD and "why" sections). Stacked on
+   phones, with the text first. */
+.splitGrid {
+  display: grid;
+  gap: var(--sp-5);
+  align-items: center;
+}
+@media (min-width: 900px) {
+  .splitGrid {
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  }
+  /* Picture on the left instead, so consecutive sections alternate. */
+  .splitGridFlip {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  }
+  .splitGridFlip > :first-child {
+    order: 2;
+  }
+}
+.sceneArt {
+  width: 100%;
+  max-width: 440px;
+  justify-self: center;
+  border-radius: 20px;
+  overflow: hidden;
+}
+.sceneCanvas {
+  width: 100%;
+  aspect-ratio: 25 / 16;
+}
+
 /* ADHD */
+.adhd .sceneArt {
+  border: 1px solid var(--line);
+  box-shadow: 0 1px 2px rgba(42, 35, 32, 0.04), 0 18px 40px -18px rgba(42, 35, 32, 0.28);
+}
 .adhd {
   background: var(--bg-warm);
   padding: var(--sp-6) 0;
@@ -519,6 +630,9 @@
   background: var(--ink);
   color: #f3ebe2;
   padding: var(--sp-6) 0;
+}
+.why .sceneArt {
+  box-shadow: 0 0 0 1px rgba(243, 235, 226, 0.08), 0 24px 48px -20px rgba(0, 0, 0, 0.6);
 }
 .why h2 {
   font-size: clamp(25px, 3.6vw, 34px);
@@ -553,6 +667,13 @@
 .privacyLede {
   color: var(--ink-soft);
   max-width: 52ch;
+  margin-bottom: var(--sp-4);
+}
+/* A 100 x 24 art-pixel strip (see components/pixel/privacy-flow.tsx): 4 CSS
+   pixels per art pixel at full width, 3 on phones. */
+.privacyArt {
+  width: min(100%, 400px);
+  aspect-ratio: 100 / 24;
   margin-bottom: var(--sp-4);
 }
 .privacyList {
@@ -626,30 +747,50 @@
   padding: var(--sp-6) 0;
   text-align: center;
 }
+/* The panel is the hero's sea at night (components/pixel/night-sea-scene.tsx).
+   The extra bottom padding leaves open water under the form. */
 .ctaPanel {
   /* Inset from the viewport edge on phones; max-width caps it on desktop. */
   width: calc(100% - 2 * var(--sp-2));
   max-width: 820px;
-  padding: var(--sp-5) var(--sp-3);
-  background: var(--bg-warm);
-  border: 1px solid var(--line);
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  padding: var(--sp-5) var(--sp-3) 128px;
+  background: #1b2244;
   border-radius: 28px;
+  box-shadow: 0 30px 60px -28px rgba(22, 28, 58, 0.55);
+}
+.ctaScene {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
 }
 .cta h2 {
   font-size: clamp(27px, 4.4vw, 42px);
   margin-bottom: var(--sp-2);
   text-wrap: balance;
+  color: #fffdfb;
+  text-shadow: 0 2px 16px rgba(14, 18, 40, 0.7);
 }
 .ctaLede {
-  color: var(--ink-soft);
+  color: #d9dbef;
   margin-bottom: var(--sp-4);
   max-width: 46ch;
   margin-left: auto;
   margin-right: auto;
+  text-shadow: 0 1px 10px rgba(14, 18, 40, 0.8);
 }
 .cta .signup {
   margin: 0 auto;
   justify-content: center;
+}
+/* The form's status line sits on the night sky here, so it needs light colours. */
+.cta .formnote.ok {
+  color: #a9e5bd;
+}
+.cta .formnote.err {
+  color: #ffb7a8;
 }
 
 .footer {
