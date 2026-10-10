@@ -274,8 +274,8 @@ export default async function Home({ searchParams }: HomeProps) {
                 </span>
                 <h3>The recording gets deleted.</h3>
                 <p>
-                  As soon as the text is saved, we delete the audio from our storage. We keep
-                  words, never recordings.
+                  As soon as the text is saved, we delete the audio from our storage. If a
+                  recording can&apos;t be turned into text, it&apos;s deleted within 2 days.
                 </p>
               </li>
               <li className={styles.reveal} data-reveal>
@@ -354,8 +354,9 @@ export default async function Home({ searchParams }: HomeProps) {
               <li className={styles.reveal} data-reveal>
                 <h3>Do you keep my recordings?</h3>
                 <p>
-                  No. We delete the audio as soon as the text is saved. Your own copy stays in
-                  your Telegram chat. <a href="#privacy">See where your voice note goes</a>.
+                  Only until they&apos;re turned into text. We delete the audio as soon as the
+                  text is saved, and within 2 days if that fails. Your own copy stays in your
+                  Telegram chat. <a href="#privacy">See where your voice note goes</a>.
                 </p>
               </li>
             </ul>
