@@ -30,6 +30,10 @@ copy. The register is "remember what matters to the people you love."
 
 1. **Delete the audio after a transcript is persisted.** We store text, never
    audio. Cost and privacy both. Never add an "audio history" feature.
+   Audio whose transcription fails twice stays in `captures/` until the daily
+   `/api/cron/failed-audio` job retries it once and then deletes it either
+   way (rules in `lib/failed-audio.ts`). `/privacy` promises deletion within
+   2 days, so don't loosen that cron without updating the policy.
 2. **Maximum 3 nudges per user per rolling 7 days.** Rank and drop the rest.
    Over-nudging kills this product. A muted app is a dead app.
 3. **Commitments are only things the USER said THEY would do.** Not things the
@@ -42,10 +46,11 @@ copy. The register is "remember what matters to the people you love."
 7. **Always return 200 to Telegram**, even on internal failure. Log the error
    separately. A non-200 makes Telegram retry the same update forever.
 8. **`$files` is deny-all for clients.** Capture audio is uploaded, read and
-   deleted only by the webhook through the admin SDK, which skips permission
-   checks. Never open a client rule on `captures/`: with the public app id,
-   anyone could read, upload or delete audio. Any future client-side storage
-   must be scoped to the authenticated owner.
+   deleted only by the webhook and the failed-audio cron through the admin
+   SDK, which skips permission checks. Never open a client rule on
+   `captures/`: with the public app id, anyone could read, upload or delete
+   audio. Any future client-side storage must be scoped to the authenticated
+   owner.
 9. **InstantDB returns `null`, not `undefined`, for unset optional fields.**
    Always use `== null` checks, never `!== undefined`. A null date coerces to
    epoch 0 and produces silently absurd results.
@@ -106,9 +111,9 @@ Always prefixed with `HOLDFAST_`. A second Instant app exists for another
 project; generic names invite cross-wiring bugs that fail silently. `CRON_SECRET`
 is the one deliberate exception: Vercel's cron scheduler only recognizes an env
 var with that exact name and auto-sends it as `Authorization: Bearer
-$CRON_SECRET`, so it can't be renamed. `/api/cron/nudges` accepts either that
-or `HOLDFAST_CRON_SECRET` via `x-holdfast-cron-secret` (kept for manual
-testing without deploying).
+$CRON_SECRET`, so it can't be renamed. Every `/api/cron/*` route accepts either
+that or `HOLDFAST_CRON_SECRET` via `x-holdfast-cron-secret` (kept for manual
+testing without deploying; see `lib/cron-auth.ts`).
 
 ## Environments
 
@@ -169,9 +174,10 @@ Ask what deterministic code could do that job instead.
 ## Legal pages
 
 `/privacy` and `/terms` describe what the code does today: what is stored
-(`instant.schema.ts`), when audio is deleted (the webhook), which companies
-handle data (`lib/ai-provider.ts`, `lib/email.ts`, Telegram, Instant, Vercel)
-and the limits (`lib/limits.ts`, `lib/nudges.ts`). Any change to those means
+(`instant.schema.ts`), when audio is deleted (the webhook, plus
+`lib/failed-audio.ts` for recordings that fail), which companies handle data
+(`lib/ai-provider.ts`, `lib/email.ts`, Telegram, Instant, Vercel) and the
+limits (`lib/limits.ts`, `lib/nudges.ts`). Any change to those means
 updating the matching page and its `UPDATED` date in the same commit. The
 privacy policy promises to tell users before a new company handles their
 notes, so switching AI provider means telling users first. The AI provider's

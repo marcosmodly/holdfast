@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { id } from '@instantdb/admin';
 import { db } from '@/lib/instant-admin';
 import { transcribe } from '@/lib/transcribe';
-import { extract, formatExtractionSummary } from '@/lib/extract';
-import { persistExtraction } from '@/lib/persist';
+import { saveTranscribedNote } from '@/lib/save-note';
+import { captureAudioPath } from '@/lib/failed-audio';
 import { handleNudgeReply } from '@/lib/nudge-reply';
 import { sendTelegramMessage } from '@/lib/telegram';
 import {
@@ -22,8 +21,6 @@ const TELEGRAM_FILE_API = `https://api.telegram.org/file/bot${BOT_TOKEN}`;
 
 const NOT_A_VOICE_NOTE_REPLY = "Send a voice note and I'll remember it for you.";
 const TRANSCRIPTION_FAILED_REPLY = "Couldn't catch that one. Mind trying again?";
-const NO_PERSON_REPLY = "Got that, but I couldn't tell who it was about. Mind sending it again with their name?";
-const PERSIST_FAILED_REPLY = "Got that, but something went wrong saving it. Mind sending it again in a bit?";
 
 const RETRY_BACKOFF_MS = 1000;
 
@@ -94,7 +91,7 @@ async function handleVoiceMessage(
   }
   const audioBuffer = Buffer.from(await audioRes.arrayBuffer());
 
-  const storagePath = `captures/${chatId}/${messageId}.ogg`;
+  const storagePath = captureAudioPath(chatId, messageId, Date.now());
   await db.storage.uploadFile(storagePath, audioBuffer, {
     contentType: 'audio/ogg',
   });
@@ -103,60 +100,14 @@ async function handleVoiceMessage(
   try {
     transcript = await transcribeWithRetry(storagePath);
   } catch (error) {
-    // Keep the audio so the user (or a retry) can still recover it.
+    // Leave the audio in storage. The daily failed-audio cron
+    // (lib/failed-audio-cleanup.ts) tries once more, then deletes it.
     console.error('Transcription failed twice:', error);
     await sendTelegramMessage(chatId, TRANSCRIPTION_FAILED_REPLY);
     return;
   }
 
-  const captureId = id();
-  const captureTime = Date.now();
-  await db.transact(
-    db.tx.captures[captureId].create({
-      transcript,
-      createdAt: captureTime,
-      chatId: String(chatId),
-    }),
-  );
-
-  // Non-negotiable: delete audio only after the transcript is persisted.
-  await db.storage.delete(storagePath);
-
-  let extraction: Awaited<ReturnType<typeof extract>>;
-  try {
-    const captureDate = new Date(captureTime).toISOString().slice(0, 10);
-    extraction = await extract(transcript, captureDate);
-  } catch (error) {
-    // Extraction is best-effort for now — the user still gets their transcript.
-    console.error('Extraction failed for capture', captureId, error);
-    await sendTelegramMessage(chatId, transcript);
-    return;
-  }
-
-  // The reply must describe what actually landed in the database, not what
-  // the model extracted — those two can diverge (see persistExtraction).
-  const result = await persistExtraction(chatId, captureId, captureTime, extraction, transcript);
-  switch (result.status) {
-    case 'saved':
-      await sendTelegramMessage(chatId, formatExtractionSummary(extraction));
-      break;
-    case 'no_person':
-      await sendTelegramMessage(chatId, NO_PERSON_REPLY);
-      break;
-    case 'failed':
-      await sendTelegramMessage(chatId, PERSIST_FAILED_REPLY);
-      break;
-  }
-
-  // TODO: remove this debug block before production — dumps the raw
-  // transcript and extraction JSON to Telegram for prompt tuning.
-  if (process.env.NODE_ENV === 'development') {
-    await sendTelegramMessage(chatId, `TRANSCRIPT:\n${transcript}`);
-    await sendTelegramMessage(
-      chatId,
-      `\`\`\`\n${JSON.stringify({ extraction, persist: result }, null, 2)}\n\`\`\``,
-    );
-  }
+  await saveTranscribedNote(chatId, storagePath, transcript, Date.now());
 }
 
 export async function POST(request: NextRequest) {

@@ -4,10 +4,11 @@ import { LegalPage } from '@/components/legal-page';
 import { currentAiDataPolicy } from '@/lib/ai-data-policy';
 
 // Every claim here must match what the code does today: audio handling in
-// api/telegram/webhook/route.ts, stored fields in instant.schema.ts, the
+// api/telegram/webhook/route.ts and lib/failed-audio.ts (the 2-day deletion
+// window for recordings that fail), stored fields in instant.schema.ts, the
 // providers in lib/ai-provider.ts and lib/email.ts. If the code changes, this
 // page changes with it, and so does UPDATED.
-const UPDATED = 'October 9, 2026';
+const UPDATED = 'October 10, 2026';
 
 export const metadata: Metadata = {
   title: 'Privacy Policy | Holdfast',
@@ -25,7 +26,10 @@ export default function PrivacyPage() {
         <h2>The short version</h2>
         <ul>
           <li>Holdfast uses what you tell it for one thing: reminding you about the people you care about.</li>
-          <li>Your voice recording is deleted as soon as it has been turned into text.</li>
+          <li>
+            Your voice recording is deleted as soon as it has been turned into text, or within 2
+            days if it can’t be.
+          </li>
           <li>We don’t sell your data, show you ads, or use it to train AI models.</li>
           <li>You can ask for a copy of your data, or have all of it deleted, at any time.</li>
         </ul>
@@ -100,8 +104,9 @@ export default function PrivacyPage() {
         </li>
       </ol>
       <p>
-        If a recording can’t be turned into text after two tries, we keep it so your note isn’t lost.
-        Email us and we’ll delete it.
+        If a recording can’t be turned into text after two tries, we tell you. Later, we try once
+        more, unless you’ve sent another voice note since. If that works, we save the text and tell
+        you what was saved. Either way, the recording is deleted within 2 days of when you sent it.
       </p>
       <p>
         {ai.policy}{' '}
@@ -180,8 +185,8 @@ export default function PrivacyPage() {
       <h2>How long we keep it</h2>
       <ul>
         <li>
-          <strong>Recordings:</strong> deleted as soon as the text is saved, apart from the rare case
-          above where a recording can’t be turned into text.
+          <strong>Recordings:</strong> deleted as soon as the text is saved. A recording that can’t
+          be turned into text is deleted within 2 days.
         </li>
         <li>
           <strong>Notes, people and reminders:</strong> for as long as you use Holdfast. If you ask

@@ -1,17 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { runNudgeEngine } from '@/lib/nudges';
 import { isCronAuthorized } from '@/lib/cron-auth';
+import { cleanUpFailedAudio } from '@/lib/failed-audio-cleanup';
+
+// Each retry is a transcription plus an extraction call. 60s is the most a
+// Hobby function gets without Fluid compute.
+export const maxDuration = 60;
 
 async function handle(request: NextRequest): Promise<NextResponse> {
   if (!isCronAuthorized(request)) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   }
 
+  // ?dryRun=1 reports what would happen to each recording without retrying
+  // or deleting anything.
+  const dryRun = request.nextUrl.searchParams.get('dryRun') === '1';
+
   try {
-    const sent = await runNudgeEngine();
-    return NextResponse.json({ ok: true, sent: sent.length, nudges: sent });
+    const files = await cleanUpFailedAudio(Date.now(), dryRun);
+    return NextResponse.json({ ok: true, dryRun, files });
   } catch (error) {
-    console.error('Nudge engine run failed:', error);
+    console.error('Failed audio cleanup run failed:', error);
     return NextResponse.json({ ok: false, error: 'internal error' }, { status: 500 });
   }
 }

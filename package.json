@@ -10,7 +10,7 @@
     "seed:nudges": "tsx --env-file=.env.local scripts/seed-nudge-test.ts",
     "cleanup:nudges": "tsx --env-file=.env.local scripts/cleanup-nudge-test.ts",
     "eval:extraction": "tsx --env-file=.env.local scripts/eval-extraction.ts",
-    "test": "node --import tsx --test tests/resolve-date.test.ts tests/limits.test.ts tests/waitlist-emails.test.ts tests/ai-provider.test.ts"
+    "test": "node --import tsx --test tests/resolve-date.test.ts tests/limits.test.ts tests/failed-audio.test.ts tests/waitlist-emails.test.ts tests/ai-provider.test.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
